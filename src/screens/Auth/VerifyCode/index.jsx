@@ -26,7 +26,6 @@ export default function VerifyCode() {
   const [code, setCode] = useState(['', '', '', '']);
   const inputs = useRef([]);
 
-  // Configurações da Pata (Mesma posição do Forgot/Register para consistência)
   const PAW_X = width * 0.68;
   const PAW_Y = height * 0.12;
   const PAW_ROTATION = '25deg';
@@ -48,14 +47,12 @@ export default function VerifyCode() {
     newCode[index] = text;
     setCode(newCode);
 
-    // Move para o próximo input automaticamente
     if (text !== '' && index < 3) {
       inputs.current[index + 1].focus();
     }
   };
 
   const handleKeyPress = (e, index) => {
-    // Move para o anterior ao apagar
     if (e.nativeEvent.key === 'Backspace' && code[index] === '' && index > 0) {
       inputs.current[index - 1].focus();
     }
@@ -76,7 +73,6 @@ export default function VerifyCode() {
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={{ flex: 1 }}>
                 
-                {/* PATA BACKGROUND */}
                 <Animated.View style={[styles.pawFixed, {
                   top: PAW_Y,
                   left: PAW_X,
@@ -87,14 +83,12 @@ export default function VerifyCode() {
                 </Animated.View>
 
                 <View style={styles.mainContent}>
-                  {/* Botão Voltar */}
                   <Animated.View style={{ opacity: fadeAnim }}>
                     <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
                       <Ionicons name="chevron-back" size={24} color="#000" />
                     </TouchableOpacity>
                   </Animated.View>
 
-                  {/* Títulos e Descrição */}
                   <Animated.View style={{ 
                     opacity: fadeAnim, 
                     transform: [{ translateY: slideAnim }],
@@ -107,7 +101,6 @@ export default function VerifyCode() {
                       Insira o código de verificação que acabamos de enviar para o seu endereço de e-mail.
                     </Text>
 
-                    {/* Container dos Quadrados de Código */}
                     <View style={styles.otpContainer}>
                       {code.map((digit, index) => (
                         <TextInput
@@ -123,14 +116,18 @@ export default function VerifyCode() {
                       ))}
                     </View>
 
-                    <TouchableOpacity style={styles.buttonVerify} activeOpacity={0.8}>
+                    {/* NAVEGAÇÃO ADICIONADA AQUI */}
+                    <TouchableOpacity 
+                      style={styles.buttonVerify} 
+                      activeOpacity={0.8}
+                      onPress={() => navigation.navigate('ResetPassword')}
+                    >
                       <Text style={[styles.buttonTextVerify, { fontFamily: 'Nunito_700Bold' }]}>Verificar</Text>
                     </TouchableOpacity>
                   </Animated.View>
 
                   <View style={{ flex: 1 }} />
 
-                  {/* Footer Reenviar */}
                   <Animated.View style={[styles.footer, { opacity: fadeAnim, paddingBottom: 20 }]}>
                     <Text style={[styles.footerTextLarge, { fontFamily: 'Nunito_400Regular' }]}>
                       Não recebeu o código? 

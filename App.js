@@ -8,6 +8,7 @@ import Login from './src/screens/Auth/Login/index';
 import Register from './src/screens/Auth/Register/index';
 import ForgotPassword from './src/screens/Auth/ForgotPassword/index';
 import VerifyCode from './src/screens/Auth/VerifyCode/index';
+import ResetPassword from './src/screens/Auth/ResetPassword/index';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,7 +31,9 @@ export default function App() {
         {/* Registro: Usa a animação padrão fade_from_bottom */}
         <Stack.Screen name="Register" component={Register} />
 
-        {/* Esqueci a Senha: Sem animação para a pata não "pular" */}
+        {/* --- FLUXO DE RECUPERAÇÃO DE SENHA (ANIMAÇÃO DESATIVADA PARA MANTER A PATA FIXA) --- */}
+
+        {/* 1. Inserir Email */}
         <Stack.Screen 
           name="ForgotPassword" 
           component={ForgotPassword} 
@@ -39,12 +42,19 @@ export default function App() {
           }}
         />
 
-        {/* Verificação de Código: Também sem animação de transição de página. 
-            Como a pata está no mesmo lugar, a troca de tela parecerá 
-            apenas uma mudança suave no conteúdo do formulário. */}
+        {/* 2. Inserir Código OTP */}
         <Stack.Screen 
           name="VerifyCode" 
           component={VerifyCode} 
+          options={{
+            animation: 'none',
+          }}
+        />
+
+        {/* 3. Redefinir Nova Senha */}
+        <Stack.Screen 
+          name="ResetPassword" 
+          component={ResetPassword} 
           options={{
             animation: 'none',
           }}
