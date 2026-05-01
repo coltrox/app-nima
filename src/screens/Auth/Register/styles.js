@@ -11,14 +11,13 @@ export const styles = StyleSheet.create({
   },
   pawFixed: {
     position: 'absolute',
-    left: 16,
     zIndex: 1,
   },
-  backButton: {
-    width: scale(35),
-    height: scale(40),
-    backgroundColor: '#FFFFFF',
-    borderRadius: 15,
+  backBtn: {
+    width: 45,
+    height: 45,
+    backgroundColor: '#fff',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
@@ -26,6 +25,8 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    marginTop: height * 0.01,
+    marginLeft: width * 0.02,
   },
   animatedContent: {
     flex: 1,

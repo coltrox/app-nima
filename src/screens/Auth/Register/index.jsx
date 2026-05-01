@@ -62,9 +62,9 @@ export default function Register({ navigation }) {
                 </Animated.View>
 
                 <Animated.View style={{ opacity: fadeAnim, paddingHorizontal: 20, marginTop: 20 }}>
-                  <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="chevron-back" size={22} color="#1E232C" />
-                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                      <Ionicons name="chevron-back" size={24} color="#000" />
+                    </TouchableOpacity>
                 </Animated.View>
 
                 <Animated.View style={[styles.animatedContent, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>

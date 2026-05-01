@@ -59,8 +59,8 @@ const LoginScreen = () => {
   if (!fontsLoaded) return null;
 
   const handleNavigation = (routeName) => {
-    const targetX = width * 0.53; 
-    const targetY = height * 0.04; 
+    const targetX = width * 0.54; 
+    const targetY = height * 0.05; 
 
     Animated.parallel([
       Animated.timing(contentOpacity, {
@@ -84,7 +84,15 @@ const LoginScreen = () => {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      navigation.navigate(routeName);
+      if (routeName === 'Home') {
+        // Reset impede o usuário de voltar para a tela de login ao deslogar
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        });
+      } else {
+        navigation.navigate(routeName);
+      }
     });
   };
 
@@ -103,11 +111,6 @@ const LoginScreen = () => {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* 
-            IMPORTANTE: 
-            1. keyboardShouldPersistTaps="handled" permite que o toque passe para o ScrollView 
-            2. TouchableWithoutFeedback dentro do ScrollView para fechar o teclado sem travar a rolagem
-          */}
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
@@ -188,7 +191,11 @@ const LoginScreen = () => {
                     </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity style={styles.loginButton} activeOpacity={0.8}>
+                  <TouchableOpacity 
+                    style={styles.loginButton} 
+                    activeOpacity={0.8}
+                    onPress={() => handleNavigation('Home')}
+                  >
                     <Text style={[styles.loginButtonText, { fontFamily: 'Nunito_700Bold' }]}>Entrar</Text>
                   </TouchableOpacity>
 
