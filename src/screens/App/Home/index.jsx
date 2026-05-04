@@ -1,172 +1,388 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  SafeAreaView,
   View,
   Text,
-  ScrollView,
-  FlatList,
-  TouchableOpacity,
   TextInput,
-  Image,
-  SafeAreaView,
+  FlatList,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, Feather } from '@expo/vector-icons';
-import { styles, colors } from './styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import OnboardingForm from '../../../components/OnboardingForm';
 
 const HomeScreen = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSmartInsights, setShowSmartInsights] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
-  const suggestions = [
-    { id: 1, name: 'Luna', breed: 'Golden Retriever', image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=300&h=400&auto=format&fit=crop' },
-    { id: 2, name: 'Thor', breed: 'Bulldog Francês', image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=300&h=400&auto=format&fit=crop' },
-    { id: 3, name: 'Mel', breed: 'Vira-lata', image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?q=80&w=300&h=400&auto=format&fit=crop' },
+  useEffect(() => {
+    const checkFirstLaunch = async () => {
+      try {
+        const hasOnboarded = await AsyncStorage.getItem('hasOnboarded');
+        setShowOnboarding(hasOnboarded !== 'true');
+      } catch (error) {
+        setShowOnboarding(true);
+      }
+    };
+    checkFirstLaunch();
+  }, []);
+
+  const completeOnboarding = async () => {
+    try {
+      await AsyncStorage.setItem('hasOnboarded', 'true');
+      setShowOnboarding(false);
+    } catch (error) {
+      // Erro ao salvar
+    }
+  };
+
+  if (showOnboarding) {
+    return <OnboardingForm onComplete={completeOnboarding} />;
+  }
+
+  // Mock data
+  const promoData = [
+    { id: '1', title: 'Promo 1', subtitle: '50% OFF' },
+    { id: '2', title: 'Promo 2', subtitle: 'Frete Grátis' },
+    { id: '3', title: 'Promo 3', subtitle: 'Novo Lançamento' },
   ];
+
+  const progressData = [
+    { id: '1', title: 'Meu Progresso 1', percent: 80 },
+    { id: '2', title: 'Meu Progresso 2', percent: 50 },
+    { id: '3', title: 'Meu Progresso 3', percent: 95 },
+  ];
+
+  const sugestoesData = [
+    { id: '1', title: 'Sugestão 1 para você' },
+    { id: '2', title: 'Sugestão 2 personalizada' },
+    { id: '3', title: 'Sugestão 3 imperdível' },
+  ];
+
+  const matchesData = [
+    { id: '1', name: 'Match 1', score: 95 },
+    { id: '2', name: 'Match 2', score: 88 },
+    { id: '3', name: 'Match 3', score: 92 },
+    { id: '4', name: 'Match 4', score: 76 },
+  ];
+
+  const renderPromo = ({ item }) => (
+    <View style={styles.promoItem}>
+      <Text style={styles.promoTitle}>{item.title}</Text>
+      <Text style={styles.promoSubtitle}>{item.subtitle}</Text>
+    </View>
+  );
+
+  const renderProgress = ({ item }) => (
+    <View style={styles.progressItem}>
+      <Text style={styles.progressTitle}>{item.title}</Text>
+      <Text style={styles.progressPercent}>{item.percent}%</Text>
+    </View>
+  );
+
+  const renderSugestao = ({ item }) => (
+    <View style={styles.sugestaoItem}>
+      <Text>{item.title}</Text>
+    </View>
+  );
+
+  const renderMatch = ({ item }) => (
+    <View style={styles.matchItem}>
+      <Text style={styles.matchName}>{item.name}</Text>
+      <Text style={styles.matchScore}>{item.score}%</Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
-        style={styles.scroll} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>nima</Text>
-          <View style={styles.headerRight}>
-            <TouchableOpacity>
-              <Ionicons name="notifications-outline" size={24} color={colors.navy} />
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Feather name="settings" size={22} color={colors.navy} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Saudação e Busca */}
-        <View style={styles.greetingSection}>
-          <Text style={styles.greeting}>Olá, Pedro!</Text>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={colors.gray} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar no nima..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor={colors.gray}
-            />
-          </View>
-        </View>
-
-        {/* Toggle de Seção */}
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity 
-            onPress={() => setShowSmartInsights(!showSmartInsights)}
-            style={styles.toggleBtn}
-          >
-            <Text style={styles.toggleText}>
-              {showSmartInsights ? "Ver Quiz de Perfil" : "Ver Meus Insights"}
-            </Text>
-            <Ionicons name="swap-horizontal" size={16} color={colors.blue} />
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.logo}>LogoApp</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity>
+            <Text style={styles.icon}>🔔</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn}>
+            <Text style={styles.icon}>⚙️</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
-        {showSmartInsights ? (
-          <View style={styles.smartInsightsCard}>
-            <Text style={styles.cardTitle}>Insights da Semana</Text>
-            <View style={styles.metricsRow}>
-              <View style={styles.metric}>
-                <Text style={styles.metricNumber}>12</Text>
-                <Text style={styles.metricLabel}>Matches</Text>
-              </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricNumber}>45</Text>
-                <Text style={styles.metricLabel}>Vistos</Text>
-              </View>
-              <View style={styles.metric}>
-                <Text style={styles.metricNumber}>08</Text>
-                <Text style={styles.metricLabel}>Likes</Text>
-              </View>
-            </View>
-          </View>
-        ) : (
-          <TouchableOpacity style={styles.ctaCard}>
-            <View>
-              <Text style={styles.ctaTitle}>Quiz de Personalidade</Text>
-              <Text style={styles.ctaText}>Melhore seus matches em até 80%</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={24} color={colors.white} />
-          </TouchableOpacity>
-        )}
-
-        {/* Match em Destaque */}
-        <Text style={styles.sectionTitle}>Destaque do Dia</Text>
-        <View style={styles.matchCard}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=800&auto=format&fit=crop' }} 
-            style={styles.matchImage} 
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(5, 8, 43, 0.8)']}
-            style={styles.imageGradient}
-          />
-          <View style={styles.matchInfoOverlay}>
-            <View>
-              <Text style={styles.matchNameWhite}>Bento, 2 anos</Text>
-              <Text style={styles.matchBreedWhite}>Golden Retriever</Text>
-            </View>
-            <View style={styles.matchPercentBadge}>
-              <Text style={styles.matchPercentText}>98% Match</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Progresso do Perfil */}
-        <View style={styles.progressCard}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Perfil quase pronto!</Text>
-            <Text style={styles.progressValue}>75%</Text>
-          </View>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: '75%' }]} />
-          </View>
-        </View>
-
-        {/* Lista de Sugestões */}
-        <Text style={styles.sectionTitle}>Recomendações</Text>
-        <FlatList
-          horizontal
-          data={suggestions}
-          renderItem={({ item }) => (
-            <View style={styles.petSuggestionCard}>
-              <Image source={{ uri: item.image }} style={styles.petSuggestionImage} />
-              <Text style={styles.petName}>{item.name}</Text>
-              <Text style={styles.petBreed}>{item.breed}</Text>
-            </View>
-          )}
-          keyExtractor={(item) => item.id.toString()}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.suggestionsList}
+      {/* SearchBar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar produtos, marcas..."
         />
+      </View>
+
+      {/* Content */}
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Promoções</Text>
+          <FlatList
+            data={promoData}
+            renderItem={renderPromo}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Progresso</Text>
+          <FlatList
+            data={progressData}
+            renderItem={renderProgress}
+            keyExtractor={(item) => item.id}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Sugestões</Text>
+          <FlatList
+            data={sugestoesData}
+            renderItem={renderSugestao}
+            keyExtractor={(item) => item.id}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Matches</Text>
+          <FlatList
+            data={matchesData}
+            renderItem={renderMatch}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.matchRow}
+          />
+        </View>
       </ScrollView>
 
-      {/* Menu Inferior (Navbar Float) */}
-      <View style={styles.navbar}>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="home" size={26} color={colors.blue} />
+      {/* BottomNavBar flutuante */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={[styles.navItem, styles.activeNav]}>
+          <Text style={styles.navIcon}>🏠</Text>
+          <Text style={styles.navLabelActive}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="heart-outline" size={26} color={colors.gray} />
+          <Text style={styles.navIcon}>🔍</Text>
+          <Text style={styles.navLabel}>Busca</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="chatbubbles-outline" size={26} color={colors.gray} />
+          <Text style={styles.navIcon}>❤️</Text>
+          <Text style={styles.navLabel}>Matches</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="person-outline" size={26} color={colors.gray} />
+          <Text style={styles.navIcon}>⭐</Text>
+          <Text style={styles.navLabel}>Favoritos</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Text style={styles.navIcon}>👤</Text>
+          <Text style={styles.navLabel}>Perfil</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  logo: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  icon: {
+    fontSize: 24,
+    marginLeft: 10,
+  },
+  iconBtn: {
+    marginLeft: 15,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    backgroundColor: 'white',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 25,
+    fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    marginBottom: 15,
+    color: '#333',
+  },
+  promoItem: {
+    backgroundColor: 'white',
+    padding: 20,
+    marginRight: 15,
+    borderRadius: 16,
+    minWidth: 160,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  promoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  promoSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  progressItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 20,
+    marginBottom: 12,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  progressTitle: {
+    fontSize: 16,
+    flex: 1,
+  },
+  progressPercent: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  sugestaoItem: {
+    backgroundColor: 'white',
+    padding: 20,
+    marginBottom: 12,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  matchRow: {
+    justifyContent: 'space-between',
+  },
+  matchItem: {
+    flexBasis: '48%',
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 12,
+  },
+  matchName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  matchScore: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2196F3',
+  },
+  bottomNav: {
+    position: 'absolute',
+    bottom: 25,
+    left: 20,
+    right: 20,
+    backgroundColor: 'white',
+    flexDirection: 'row',
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  navItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeNav: {
+    // Estilo ativo pode ser expandido
+  },
+  navIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  navLabel: {
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '500',
+  },
+  navLabelActive: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '600',
+  },
+});
 
 export default HomeScreen;

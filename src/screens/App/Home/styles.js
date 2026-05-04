@@ -1,272 +1,264 @@
-import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-
-export const colors = {
-  navy: '#05082B',
-  blue: '#1D5CFF',
-  white: '#FFFFFF',
-  gray: '#6B7280',
-  lightGray: '#F3F4F6',
-  green: '#059669',
-  ice: '#F8FAFC',
+const COLORS = {
+  primary: '#007AFF',
+  primaryVariant: '#0A6ED1',
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  surfaceVariant: '#F2F2F7',
+  textPrimary: '#1D1D1F',
+  textSecondary: '#6E6E73',
+  textTertiary: '#86868B',
+  border: '#E5E5EA',
+  error: '#FF453A',
+  success: '#32D74B',
 };
 
-export const styles = StyleSheet.create({
+const SPACING = {
+  xxs: 2,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+  xxlxl: 40,
+};
+
+const TYPOGRAPHY = {
+  sizes: {
+    h1: 34,
+    h2: 28,
+    h3: 22,
+    bodyLarge: 17,
+    bodyMedium: 15,
+    bodySmall: 13,
+    caption: 12,
+    label: 14,
+  },
+  weights: {
+    regular: '400',
+    medium: '500',
+    semibold: '600',
+    bold: '700',
+  },
+};
+
+const SHADOWS = {
+  xs: Platform.select({
+    ios: {
+      shadowColor: COLORS.textTertiary,
+      shadowOffset: {
+        width: 0,
+        height: 0,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+    },
+    android: {
+      elevation: 1,
+    },
+  }),
+  sm: Platform.select({
+    ios: {
+      shadowColor: COLORS.textTertiary,
+      shadowOffset: {
+        width: 0,
+        height: 1,
+      },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+    },
+    android: {
+      elevation: 2,
+    },
+  }),
+  md: Platform.select({
+    ios: {
+      shadowColor: COLORS.textTertiary,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
+  lg: Platform.select({
+    ios: {
+      shadowColor: COLORS.textTertiary,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+    },
+    android: {
+      elevation: 8,
+    },
+  }),
+};
+
+const styles = StyleSheet.create({
+  // Layout
   container: {
     flex: 1,
-    backgroundColor: colors.ice,
+    backgroundColor: COLORS.background,
   },
-  scroll: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: screenWidth * 0.06,
-    paddingTop: Platform.OS === 'ios' ? 20 : 50,
-    paddingBottom: 10,
-  },
-  logo: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.blue,
-    letterSpacing: -1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    gap: 15,
-  },
-  greetingSection: {
-    paddingHorizontal: screenWidth * 0.06,
-    marginVertical: 15,
-  },
-  greeting: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: colors.navy,
-    marginBottom: 15,
-  },
-  searchContainer: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
-    borderRadius: 16,
-    paddingHorizontal: 15,
-    height: 50,
+  },
+  sectionHeader: {
+    fontSize: TYPOGRAPHY.sizes.h3,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textPrimary,
+    marginBottom: SPACING.sm,
+  },
+
+  // Tipografia
+  h1: {
+    fontSize: TYPOGRAPHY.sizes.h1,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    color: COLORS.textPrimary,
+    lineHeight: 41,
+  },
+  h2: {
+    fontSize: TYPOGRAPHY.sizes.h2,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textPrimary,
+    lineHeight: 34,
+  },
+  h3: {
+    fontSize: TYPOGRAPHY.sizes.h3,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+    color: COLORS.textPrimary,
+    lineHeight: 28,
+  },
+  bodyLarge: {
+    fontSize: TYPOGRAPHY.sizes.bodyLarge,
+    fontWeight: TYPOGRAPHY.weights.regular,
+    color: COLORS.textPrimary,
+    lineHeight: 22,
+  },
+  bodyMedium: {
+    fontSize: TYPOGRAPHY.sizes.bodyMedium,
+    fontWeight: TYPOGRAPHY.weights.regular,
+    color: COLORS.textPrimary,
+    lineHeight: 20,
+  },
+  caption: {
+    fontSize: TYPOGRAPHY.sizes.caption,
+    fontWeight: TYPOGRAPHY.weights.regular,
+    color: COLORS.textSecondary,
+    lineHeight: 16,
+  },
+
+  // Componentes
+  card: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 14,
+    padding: SPACING.xl,
+    marginVertical: SPACING.md,
+    marginHorizontal: SPACING.lg,
+    ...SHADOWS.sm,
+  },
+  cardElevated: {
+    ...SHADOWS.md,
+  },
+
+  buttonPrimary: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  buttonPrimaryText: {
+    color: '#FFFFFF',
+    fontSize: TYPOGRAPHY.sizes.bodyLarge,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
+  buttonSecondary: {
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: 10,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.xxl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: COLORS.border,
   },
-  searchInput: {
+  buttonSecondaryText: {
+    color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.sizes.bodyLarge,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
+
+  inputContainer: {
+    backgroundColor: COLORS.surfaceVariant,
+    borderRadius: 10,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.border,
+    minHeight: 44,
+  },
+  input: {
+    fontSize: TYPOGRAPHY.sizes.bodyLarge,
+    color: COLORS.textPrimary,
     flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-    color: colors.navy,
   },
-  toggleContainer: {
-    paddingHorizontal: screenWidth * 0.06,
-    marginBottom: 10,
+  inputFocused: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
   },
-  toggleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  toggleText: {
-    color: colors.blue,
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  smartInsightsCard: {
-    backgroundColor: colors.white,
-    borderRadius: 24,
-    padding: 20,
-    marginHorizontal: screenWidth * 0.06,
-    marginBottom: 20,
-    elevation: 4,
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.navy,
-    marginBottom: 15,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  metric: {
-    alignItems: 'center',
-  },
-  metricNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.blue,
-  },
-  metricLabel: {
-    fontSize: 12,
-    color: colors.gray,
-    marginTop: 2,
-  },
-  ctaCard: {
-    backgroundColor: colors.blue,
-    borderRadius: 24,
-    padding: 25,
-    marginHorizontal: screenWidth * 0.06,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  ctaTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  ctaText: {
-    fontSize: 14,
-    color: colors.white,
-    opacity: 0.8,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.navy,
-    marginHorizontal: screenWidth * 0.06,
-    marginBottom: 15,
-  },
-  matchCard: {
-    height: screenHeight * 0.35,
-    marginHorizontal: screenWidth * 0.06,
-    borderRadius: 30,
-    overflow: 'hidden',
-    marginBottom: 25,
-    elevation: 8,
-    shadowColor: colors.navy,
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-  },
-  matchImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imageGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '60%',
-  },
-  matchInfoOverlay: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  matchNameWhite: {
-    color: colors.white,
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  matchBreedWhite: {
-    color: colors.white,
-    opacity: 0.9,
-    fontSize: 14,
-  },
-  matchPercentBadge: {
-    backgroundColor: colors.green,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+
+  badge: {
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
-  },
-  matchPercentText: {
-    color: colors.white,
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  progressCard: {
-    backgroundColor: colors.white,
-    padding: 20,
-    borderRadius: 24,
-    marginHorizontal: screenWidth * 0.06,
-    marginBottom: 25,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  progressLabel: {
-    fontWeight: '600',
-    color: colors.navy,
-  },
-  progressValue: {
-    color: colors.blue,
-    fontWeight: 'bold',
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: colors.lightGray,
-    borderRadius: 4,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: colors.blue,
-    borderRadius: 4,
-  },
-  suggestionsList: {
-    paddingLeft: screenWidth * 0.06,
-    paddingBottom: 20,
-  },
-  petSuggestionCard: {
-    backgroundColor: colors.white,
-    borderRadius: 20,
-    padding: 12,
-    marginRight: 15,
-    width: 160,
-    elevation: 3,
-    shadowColor: colors.navy,
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-  },
-  petSuggestionImage: {
-    width: '100%',
-    height: 140,
-    borderRadius: 15,
-    marginBottom: 10,
-  },
-  petName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.navy,
-  },
-  petBreed: {
-    fontSize: 12,
-    color: colors.gray,
-  },
-  navbar: {
-    position: 'absolute',
-    bottom: 25,
-    left: screenWidth * 0.06,
-    right: screenWidth * 0.06,
-    height: 70,
-    backgroundColor: colors.white,
-    borderRadius: 25,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    paddingHorizontal: SPACING.xs,
+    paddingVertical: SPACING.xxs,
+    minWidth: 20,
     alignItems: 'center',
-    elevation: 10,
-    shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
+    justifyContent: 'center',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: TYPOGRAPHY.sizes.caption,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
+
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surfaceVariant,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarLarge: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  avatarImageLarge: {
+    borderRadius: 36,
   },
 });
+
+export default styles;
+export { COLORS, SPACING, TYPOGRAPHY, SHADOWS };
