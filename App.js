@@ -3,22 +3,29 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 
-// Importação das suas telas
+// --- Importações de Autenticação ---
 import Login from './src/screens/Auth/Login/index';
 import Register from './src/screens/Auth/Register/index';
 import ForgotPassword from './src/screens/Auth/ForgotPassword/index';
 import VerifyCode from './src/screens/Auth/VerifyCode/index';
 import ResetPassword from './src/screens/Auth/ResetPassword/index';
 
-// Importação da Tela Home (Localizada na nova pasta App)
+// --- Importações do Aplicativo (Ecossistema nima) ---
 import Home from './src/screens/App/Home/index'; 
+import Match from './src/screens/App/Match/index';
+import MyPet from './src/screens/App/MyPet/index';
+import SmartTag from './src/screens/App/SmartTag/index';
+import Donation from './src/screens/App/Donation/index';
+import BreedGuide from './src/screens/App/BreedGuide/index';
+import Profile from './src/screens/App/Profile/index';
+import PetDetails from './src/screens/App/PetDetails/index';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack.Navigator
         initialRouteName="Login"
         screenOptions={{
@@ -46,14 +53,19 @@ export default function App() {
           options={{ animation: 'none' }}
         />
 
-        {/* Grupo do Aplicativo (Logado) */}
+        {/* Grupo do Aplicativo (Áreas principais do nima) */}
         <Stack.Screen 
           name="Home" 
           component={Home} 
-          options={{
-            animation: 'fade', // Transição suave para entrar no app
-          }}
+          options={{ animation: 'fade' }}
         />
+        <Stack.Screen name="Match" component={Match} />
+        <Stack.Screen name="MyPet" component={MyPet} />
+        <Stack.Screen name="SmartTag" component={SmartTag} />
+        <Stack.Screen name="Donation" component={Donation} />
+        <Stack.Screen name="BreedGuide" component={BreedGuide} />
+        <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="PetDetails" component={PetDetails} />
         
       </Stack.Navigator>
     </NavigationContainer>
