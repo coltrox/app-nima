@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -21,24 +21,20 @@ const HomeScreen = ({ navigation }) => {
   const [showSmartInsights, setShowSmartInsights] = useState(true);
   const [isQuizVisible, setIsQuizVisible] = useState(false);
 
-  // Ativa o questionário automaticamente ao entrar
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsQuizVisible(true);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+  const handleCloseQuiz = () => {
+    setIsQuizVisible(false);
+  };
+
+  const handleCompleteQuiz = (data) => {
+    console.log('Quiz nima finalizado:', data);
+    setIsQuizVisible(false);
+  };
 
   const suggestions = [
     { id: 1, name: 'Luna', breed: 'Golden Retriever', image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=300&h=400&auto=format&fit=crop' },
     { id: 2, name: 'Thor', breed: 'Bulldog Francês', image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=300&h=400&auto=format&fit=crop' },
     { id: 3, name: 'Mel', breed: 'Vira-lata', image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?q=80&w=300&h=400&auto=format&fit=crop' },
   ];
-
-  const handleCompleteQuiz = (data) => {
-    console.log('Quiz nima finalizado:', data);
-    setIsQuizVisible(false);
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,13 +50,13 @@ const HomeScreen = ({ navigation }) => {
             <TouchableOpacity>
               <Ionicons name="notifications-outline" size={24} color={colors.navy} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
               <Feather name="settings" size={22} color={colors.navy} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Seção de Saudação */}
+        {/* Secção de Saudação */}
         <View style={styles.greetingSection}>
           <Text style={styles.greeting}>Olá, Pedro!</Text>
           <View style={styles.searchContainer}>
@@ -113,14 +109,14 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => setIsQuizVisible(true)}
           >
             <View>
-              <Text style={styles.ctaTitle}>Quiz de Personalidade</Text>
+              <Text style={styles.ctaTitle}>Questionário de compatibilidade</Text>
               <Text style={styles.ctaText}>Melhore seus matches em até 80%</Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={colors.white} />
           </TouchableOpacity>
         )}
 
-        {/* Seção de Destaque com Gradiente */}
+        {/* Destaque do Dia */}
         <Text style={styles.sectionTitle}>Destaque do Dia</Text>
         <TouchableOpacity 
             style={styles.matchCard}
@@ -145,7 +141,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </TouchableOpacity>
 
-        {/* Barra de Progresso do Perfil */}
+        {/* Barra de Progresso */}
         <View style={styles.progressCard}>
           <View style={styles.progressHeader}>
             <Text style={styles.progressLabel}>Perfil quase pronto!</Text>
@@ -156,7 +152,7 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Lista Horizontal de Sugestões */}
+        {/* Recomendações */}
         <Text style={styles.sectionTitle}>Recomendações</Text>
         <FlatList
           horizontal
@@ -177,10 +173,9 @@ const HomeScreen = ({ navigation }) => {
         />
       </ScrollView>
 
-      {/* Modal do Questionário */}
       <Questionario 
         visible={isQuizVisible} 
-        onClose={() => setIsQuizVisible(false)}
+        onClose={handleCloseQuiz}
         onComplete={handleCompleteQuiz}
       />
 

@@ -1,6 +1,7 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const isSmallDevice = screenWidth < 375;
 
 export const colors = {
   navy: '#05082B',
@@ -29,7 +30,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   logo: {
-    fontSize: 32,
+    fontSize: isSmallDevice ? 28 : 32,
     fontWeight: 'bold',
     color: colors.blue,
     letterSpacing: -1,
@@ -43,7 +44,7 @@ export const styles = StyleSheet.create({
     marginVertical: 15,
   },
   greeting: {
-    fontSize: 26,
+    fontSize: isSmallDevice ? 22 : 26,
     fontWeight: 'bold',
     color: colors.navy,
     marginBottom: 15,
@@ -231,7 +232,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 12,
     marginRight: 15,
-    width: 160,
+    width: screenWidth * 0.4, // Largura responsiva (40% do ecrã)
     elevation: 3,
     shadowColor: colors.navy,
     shadowOpacity: 0.05,
@@ -239,7 +240,7 @@ export const styles = StyleSheet.create({
   },
   petSuggestionImage: {
     width: '100%',
-    height: 140,
+    height: screenWidth * 0.35, // Altura proporcional
     borderRadius: 15,
     marginBottom: 10,
   },

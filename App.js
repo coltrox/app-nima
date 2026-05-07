@@ -16,9 +16,10 @@ import Match from './src/screens/App/Match/index';
 import MyPet from './src/screens/App/MyPet/index';
 import SmartTag from './src/screens/App/SmartTag/index';
 import Donation from './src/screens/App/Donation/index';
-import BreedGuide from './src/screens/App/BreedGuide/index';
+import Guide from './src/screens/App/Guide/index';
 import Profile from './src/screens/App/Profile/index';
 import PetDetails from './src/screens/App/PetDetails/index';
+import Settings from './src/screens/App/Settings/index'; // Importação da nova tela
 
 const Stack = createNativeStackNavigator();
 
@@ -57,15 +58,22 @@ export default function App() {
         <Stack.Screen 
           name="Home" 
           component={Home} 
-          options={{ animation: 'fade' }}
+          options={{ animation: 'fade' }} 
         />
         <Stack.Screen name="Match" component={Match} />
         <Stack.Screen name="MyPet" component={MyPet} />
         <Stack.Screen name="SmartTag" component={SmartTag} />
         <Stack.Screen name="Donation" component={Donation} />
-        <Stack.Screen name="BreedGuide" component={BreedGuide} />
+        <Stack.Screen name="Guide" component={Guide} />
         <Stack.Screen name="Profile" component={Profile} />
         <Stack.Screen name="PetDetails" component={PetDetails} />
+        
+        {/* Nova Rota de Configurações */}
+        <Stack.Screen 
+          name="Settings" 
+          component={Settings} 
+          options={{ animation: 'slide_from_right' }} 
+        />
         
       </Stack.Navigator>
     </NavigationContainer>

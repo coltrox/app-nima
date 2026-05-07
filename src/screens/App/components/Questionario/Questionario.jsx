@@ -1,52 +1,54 @@
 import React, { useState } from 'react';
 import { 
   Modal, View, Text, TouchableOpacity, ScrollView, 
-  TextInput, Dimensions, Animated 
+  TextInput, Dimensions, SafeAreaView, KeyboardAvoidingView, Platform 
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { styles, colors } from './styles';
 
-const { width } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const Questionario = ({ visible, onClose, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
 
   const questions = [
-    // 1. Perfil e Rotina
-    { id: 1, section: 'Perfil', type: 'select', question: 'Quanto tempo o animal ficará sozinho por dia?', options: ['Menos de 4 horas', 'Entre 4 e 8 horas', 'Mais de 8 horas'] },
-    { id: 2, section: 'Perfil', type: 'select', question: 'Qual é o seu nível de energia?', options: ['Baixo', 'Moderado', 'Alto'] },
-    { id: 3, section: 'Perfil', type: 'select', question: 'Frequência de passeios pretendida:', options: ['Nenhuma', 'Leve (1–2x/semana)', 'Moderada (3–5x/semana)', 'Intensa (todos os dias)'] },
-    { id: 4, section: 'Perfil', type: 'input', question: 'Quem será o principal responsável?' },
-    
-    // 2. Ambiente
-    { id: 5, section: 'Ambiente', type: 'select', question: 'Tipo da sua residência:', options: ['Casa com quintal grande', 'Casa com quintal pequeno', 'Apartamento com tela', 'Apartamento sem tela'] },
-    { id: 6, section: 'Ambiente', type: 'select', question: 'O ambiente é seguro contra fugas?', options: ['Sim', 'Não'] },
-    { id: 7, section: 'Ambiente', type: 'select', question: 'Acesso ao interior da casa?', options: ['Sim', 'Não'] },
-
-    // 3. Família
-    { id: 8, section: 'Família', type: 'select', question: 'Existem crianças na residência?', options: ['Sim', 'Não'] },
-    { id: 9, section: 'Família', type: 'input', question: 'Se sim, qual a faixa etária das crianças?' },
-    { id: 10, section: 'Família', type: 'input', question: 'Existem outros animais? (Porte/Comportamento)' },
-
-    // 4. Preferências
-    { id: 11, section: 'Preferências', type: 'select', question: 'Preferência de espécie:', options: ['Cachorro', 'Gato', 'Indiferente'] },
-    { id: 12, section: 'Preferências', type: 'select', question: 'Porte preferido:', options: ['Pequeno', 'Médio', 'Grande', 'Indiferente'] },
-    { id: 13, section: 'Preferências', type: 'select', question: 'Idade preferida:', options: ['Filhote', 'Adulto', 'Idoso'] },
-
-    // 5. Saúde e Finanças
-    { id: 14, section: 'Saúde', type: 'select', question: 'Alguém possui alergia a pelos?', options: ['Sim', 'Não'] },
-    { id: 15, section: 'Finanças', type: 'select', question: 'Possui reserva para custos veterinários?', options: ['Sim', 'Não'] },
-
-    // 6. Planejamento
-    { id: 16, section: 'Planejamento', type: 'input', question: 'Viaja com frequência? O que fará com o animal?' },
-
-    // 7. Experiência e Intenção
-    { id: 17, section: 'Experiência', type: 'select', question: 'Já teve animais antes?', options: ['Sim', 'Não'] },
-    { id: 18, section: 'Experiência', type: 'select', question: 'Classificação da sua experiência:', options: ['Nenhuma', 'Básica', 'Experiente'] },
-    { id: 19, section: 'Intenção', type: 'input', question: 'Qual o principal motivo para adoção?' },
-    { id: 20, section: 'Compromisso', type: 'select', question: 'Ciente da responsabilidade (10-15 anos)?', options: ['Sim', 'Não'] },
+    { id: 1, section: 'Perfil', icon: 'account-clock', type: 'select', question: 'Quanto tempo o animal ficará sozinho por dia?', options: ['Menos de 4 horas', 'Entre 4 e 8 horas', 'Mais de 8 horas'] },
+    { id: 2, section: 'Perfil', icon: 'lightning-bolt', type: 'select', question: 'Qual é o seu nível de energia?', options: ['Baixo', 'Moderado', 'Alto'] },
+    { id: 3, section: 'Perfil', icon: 'walk', type: 'select', question: 'Frequência de passeios pretendida:', options: ['Nenhuma', 'Leve (1–2x/semana)', 'Moderada (3–5x/semana)', 'Intensa (todos os dias)'] },
+    { id: 4, section: 'Perfil', icon: 'account-check', type: 'input', question: 'Quem será o principal responsável?' },
+    { id: 5, section: 'Ambiente', icon: 'home-variant', type: 'select', question: 'Tipo da sua residência:', options: ['Casa com quintal grande', 'Casa com quintal pequeno', 'Apartamento com tela', 'Apartamento sem tela'] },
+    { id: 6, section: 'Ambiente', icon: 'shield-check', type: 'select', question: 'O ambiente é seguro contra fugas?', options: ['Sim', 'Não'] },
+    { id: 7, section: 'Ambiente', icon: 'door-open', type: 'select', question: 'Acesso ao interior da casa?', options: ['Sim', 'Não'] },
+    { id: 8, section: 'Família', icon: 'human-child', type: 'select', question: 'Existem crianças na residência?', options: ['Sim', 'Não'] },
+    { id: 9, section: 'Família', icon: 'baby-face-outline', type: 'input', question: 'Se sim, qual a faixa etária das crianças?' },
+    { id: 10, section: 'Família', icon: 'paw', type: 'input', question: 'Existem outros animais?' },
+    { id: 11, section: 'Preferências', icon: 'heart', type: 'select', question: 'Preferência de espécie:', options: ['Cachorro', 'Gato', 'Indiferente'] },
+    { id: 12, section: 'Preferências', icon: 'resize', type: 'select', question: 'Porte preferido:', options: ['Pequeno', 'Médio', 'Grande', 'Indiferente'] },
+    { id: 13, section: 'Preferências', icon: 'calendar-range', type: 'select', question: 'Idade preferida:', options: ['Filhote', 'Adulto', 'Idoso'] },
+    { id: 14, section: 'Saúde', icon: 'medical-bag', type: 'select', question: 'Alguém possui alergia a pelos?', options: ['Sim', 'Não'] },
+    { id: 15, section: 'Finanças', icon: 'cash-multiple', type: 'select', question: 'Possui reserva para custos veterinários?', options: ['Sim', 'Não'] },
+    { id: 16, section: 'Planejamento', icon: 'airplane', type: 'input', question: 'Viaja com frequência? O que fará com o animal?' },
+    { id: 17, section: 'Experiência', icon: 'history', type: 'select', question: 'Já teve animais antes?', options: ['Sim', 'Não'] },
+    { id: 18, section: 'Experiência', icon: 'star-circle', type: 'select', question: 'Classificação da sua experiência:', options: ['Nenhuma', 'Básica', 'Experiente'] },
+    { id: 19, section: 'Intenção', icon: 'comment-question', type: 'input', question: 'Qual o motivo para adoção?' },
+    { id: 20, section: 'Compromisso', icon: 'handshake', type: 'select', question: 'Ciente da responsabilidade (10-15 anos)?', options: ['Sim', 'Não'] },
   ];
+
+  const currentQ = questions[currentStep];
+  const progress = ((currentStep + 1) / questions.length) * 100;
+
+  const handleOptionSelect = (option) => {
+    const newAnswers = { ...answers, [currentQ.id]: option };
+    setAnswers(newAnswers);
+    
+    if (currentStep < questions.length - 1) {
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+      }, 150);
+    }
+  };
 
   const handleNext = () => {
     if (currentStep < questions.length - 1) {
@@ -60,74 +62,118 @@ const Questionario = ({ visible, onClose, onComplete }) => {
     if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  const currentQ = questions[currentStep];
-  const progress = ((currentStep + 1) / questions.length) * 100;
-
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.modalOverlay}
+      >
         <View style={styles.container}>
-          {/* Header & Progresso */}
+          <View style={styles.topIndicator} />
+
           <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={28} color={colors.navy} />
-            </TouchableOpacity>
-            <View style={styles.progressContainer}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.iconButton} onPress={onClose}>
+                <Ionicons name="close" size={24} color={colors.navy} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onClose}>
+                <Text style={styles.laterText}>Responder depois</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.stepText}>{currentStep + 1}/{questions.length}</Text>
+            
+            <View style={styles.progressWrapper}>
+              <View style={styles.progressLabelRow}>
+                <Text style={styles.progressLabel}>{currentQ.section}</Text>
+                <Text style={styles.progressSteps}>{currentStep + 1}/{questions.length}</Text>
+              </View>
+              <View style={styles.progressContainer}>
+                <LinearGradient
+                  colors={[colors.blue, '#6366F1']}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={[styles.progressFill, { width: `${progress}%` }]}
+                />
+              </View>
+            </View>
           </View>
 
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.sectionLabel}>{currentQ.section}</Text>
-            <Text style={styles.questionText}>{currentQ.question}</Text>
-
-            {currentQ.type === 'select' ? (
-              currentQ.options.map((option) => (
-                <TouchableOpacity 
-                  key={option}
-                  style={[
-                    styles.optionButton,
-                    answers[currentQ.id] === option && styles.optionSelected
-                  ]}
-                  onPress={() => setAnswers({...answers, [currentQ.id]: option})}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    answers[currentQ.id] === option && styles.optionTextSelected
-                  ]}>{option}</Text>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <TextInput
-                style={styles.input}
-                placeholder="Escreva aqui..."
-                multiline
-                value={answers[currentQ.id] || ''}
-                onChangeText={(text) => setAnswers({...answers, [currentQ.id]: text})}
+          <ScrollView 
+            contentContainerStyle={styles.content} 
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.questionCard}>
+              <MaterialCommunityIcons 
+                name={currentQ.icon} 
+                size={SCREEN_HEIGHT * 0.045} 
+                color={colors.blue} 
+                style={{ marginBottom: 12 }} 
               />
-            )}
+              <Text style={styles.questionText}>{currentQ.question}</Text>
+            </View>
+
+            <View style={styles.optionsWrapper}>
+              {currentQ.type === 'select' ? (
+                currentQ.options.map((option) => (
+                  <TouchableOpacity 
+                    key={option}
+                    activeOpacity={0.6}
+                    style={[
+                      styles.optionButton,
+                      answers[currentQ.id] === option && styles.optionSelected
+                    ]}
+                    onPress={() => handleOptionSelect(option)}
+                  >
+                    <Text style={[
+                      styles.optionText,
+                      answers[currentQ.id] === option && styles.optionTextSelected
+                    ]}>{option}</Text>
+                    {answers[currentQ.id] === option && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.blue} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Toque para digitar..."
+                  placeholderTextColor={colors.gray}
+                  multiline
+                  value={answers[currentQ.id] || ''}
+                  onChangeText={(text) => setAnswers({...answers, [currentQ.id]: text})}
+                />
+              )}
+            </View>
           </ScrollView>
 
-          {/* Navegação Inferior */}
-          <View style={styles.footer}>
-            {currentStep > 0 && (
-              <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-                <Text style={styles.backButtonText}>Voltar</Text>
+          <SafeAreaView style={styles.footer}>
+            <TouchableOpacity 
+              style={[styles.navButton, currentStep === 0 && { opacity: 0 }]} 
+              onPress={handleBack}
+              disabled={currentStep === 0}
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.gray} />
+              <Text style={styles.navButtonText}>Anterior</Text>
+            </TouchableOpacity>
+
+            {(currentQ.type === 'input' || currentStep === questions.length - 1) && (
+              <TouchableOpacity 
+                style={styles.mainButton}
+                onPress={handleNext}
+                disabled={!answers[currentQ.id]}
+              >
+                <LinearGradient
+                  colors={answers[currentQ.id] ? [colors.blue, '#4F46E5'] : ['#E2E8F0', '#CBD5E1']}
+                  style={styles.mainButtonGradient}
+                >
+                  <Text style={styles.mainButtonText}>
+                    {currentStep === questions.length - 1 ? 'Finalizar' : 'Avançar'}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
-              style={[styles.nextButton, !answers[currentQ.id] && styles.disabledButton]} 
-              onPress={handleNext}
-              disabled={!answers[currentQ.id]}
-            >
-              <Text style={styles.nextButtonText}>
-                {currentStep === questions.length - 1 ? 'Finalizar' : 'Próximo'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </SafeAreaView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

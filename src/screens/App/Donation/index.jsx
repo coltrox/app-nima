@@ -1,57 +1,68 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity, 
+  Image, 
+  SafeAreaView, 
+  StatusBar 
+} from 'react-native';
+import { styles } from './styles'; 
+import Navbar from '../components/NavBar/navbar';
 
-// Substitua o nome da função pelo nome da tela (ex: Match, SmartTag, etc.)
-const Donation = ({ navigation }) => {
+const ongs = [
+  { id: '1', name: 'ONG Patinhas Livres', cause: 'Resgate e Reabilitação', meta: 'R$ 5.000', image: 'https://images.unsplash.com/photo-1481391319762-47dff72954d9?q=80&w=400' },
+  { id: '2', name: 'Abrigo Esperança', cause: 'Alimentação e Castração', meta: 'R$ 2.300', image: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=400' },
+];
+
+const DonationsScreen = ({ navigation }) => {
   return (
-    <View style={styles.container}>
-      <Ionicons name="construct-outline" size={80} color="#007AFF" />
-      <Text style={styles.title}>Tela em Desenvolvimento</Text>
-      <Text style={styles.subtitle}>O ecossistema nima está crescendo!</Text>
-      
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={() => navigation.goBack()}
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView 
+        style={styles.scroll} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <Text style={styles.buttonText}>Voltar para Home</Text>
-      </TouchableOpacity>
-    </View>
+        <View style={styles.header}>
+          <Text style={styles.title}>Vitrine Social</Text>
+        </View>
+
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>Apoie uma causa</Text>
+          <Text style={styles.heroSubtitle}>Sua doação salva vidas diretamente pelo Pix.</Text>
+        </View>
+
+        {ongs.map(ong => (
+          <TouchableOpacity key={ong.id} style={styles.ongCard} activeOpacity={0.9}>
+            <Image source={{ uri: ong.image }} style={styles.ongImage} />
+            
+            <View style={styles.cardInfo}>
+              <Text style={styles.ongName}>{ong.name}</Text>
+              <Text style={styles.ongCause}>{ong.cause}</Text>
+              
+              <View style={styles.cardFooter}>
+                <View>
+                  <Text style={styles.metaLabel}>Meta</Text>
+                  <Text style={styles.metaValue}>{ong.meta}</Text>
+                </View>
+                
+                <TouchableOpacity style={styles.pixButton} activeOpacity={0.7}>
+                  <Text style={styles.pixText}>Doar via Pix</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+        
+        {/* Espaçamento para não sumir atrás da Navbar */}
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      <Navbar navigation={navigation} currentRoute="Match" />
+    </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1D1D1F',
-    marginTop: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#8E8E93',
-    textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 40,
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
-
-export default Donation;
+export default DonationsScreen;
