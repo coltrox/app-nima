@@ -10,7 +10,6 @@ import {
   Easing,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
@@ -29,8 +28,6 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Estado para o Popup customizado
   const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
 
   const email = route.params?.email;
@@ -82,28 +79,12 @@ export default function ResetPassword() {
 
     setIsLoading(true);
     try {
-      // Chama o serviço para atualizar a senha no banco
       await authService.resetPassword(email, code, pwr);
-
       triggerPopup('Senha alterada com sucesso!', 'success', () => {
         navigation.navigate('Login');
       });
     } catch (error) {
-      // Traduz o erro do servidor para o popup
-      let errorMessage = String(error).toLowerCase();
-      
-      if (
-        errorMessage.includes("same") || 
-        errorMessage.includes("igual") || 
-        errorMessage.includes("anterior") ||
-        errorMessage.includes("atual")
-      ) {
-        errorMessage = 'A nova senha não pode ser igual à senha atual.';
-      } else {
-        errorMessage = error || 'Erro ao redefinir senha.';
-      }
-      
-      triggerPopup(errorMessage, 'error');
+      triggerPopup(error, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -118,8 +99,7 @@ export default function ResetPassword() {
             top: height * 0.12, 
             left: width * 0.68, 
             opacity: pawFadeAnim, 
-            transform: [{ rotate: '25deg' }],
-            zIndex: -1 
+            transform: [{ rotate: '25deg' }] 
           }]}
         >
           <Ionicons name="paw" size={width * 0.22} color="#FFFFFF" />
@@ -159,9 +139,9 @@ export default function ResetPassword() {
                   Crie uma senha nova. Por segurança, não utilize uma senha já usada anteriormente.
                 </Text>
 
-                <View style={styles.inputSection} pointerEvents="box-none">
+                <View style={styles.inputContainer} pointerEvents="box-none">
                   <TextInput 
-                    style={[styles.inputField, { fontFamily: 'Nunito_400Regular' }]} 
+                    style={[styles.inputLarge, { fontFamily: 'Nunito_400Regular' }]} 
                     placeholder="Nova Senha" 
                     placeholderTextColor="#9CA3AF" 
                     secureTextEntry 
@@ -170,7 +150,7 @@ export default function ResetPassword() {
                     editable={!isLoading}
                   />
                   <TextInput 
-                    style={[styles.inputField, { fontFamily: 'Nunito_400Regular', marginTop: 15 }]} 
+                    style={[styles.inputLarge, { fontFamily: 'Nunito_400Regular' }]} 
                     placeholder="Confirmar nova Senha" 
                     placeholderTextColor="#9CA3AF" 
                     secureTextEntry 
@@ -180,7 +160,7 @@ export default function ResetPassword() {
                   />
 
                   <TouchableOpacity 
-                    style={styles.buttonReset} 
+                    style={styles.buttonLarge} 
                     activeOpacity={0.8} 
                     onPress={handleResetPassword}
                     disabled={isLoading}
@@ -188,7 +168,7 @@ export default function ResetPassword() {
                     {isLoading ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (
-                      <Text style={[styles.buttonTextReset, { fontFamily: 'Nunito_700Bold' }]}>Alterar senha</Text>
+                      <Text style={[styles.buttonTextLarge, { fontFamily: 'Nunito_700Bold' }]}>Alterar senha</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -196,10 +176,10 @@ export default function ResetPassword() {
 
               <View style={{ flex: 1 }} pointerEvents="none" />
 
-              <Animated.View style={[styles.footer, { opacity: fadeAnim, paddingBottom: 20, zIndex: 10 }]}>
+              <Animated.View style={[styles.footer, { opacity: fadeAnim, zIndex: 10 }]}>
                 <Text style={[styles.footerTextLarge, { fontFamily: 'Nunito_400Regular' }]}>Precisa de ajuda? </Text>
                 <TouchableOpacity disabled={isLoading}>
-                  <Text style={[styles.helpLink, { fontFamily: 'Nunito_700Bold' }]}>Entre em Contato.</Text>
+                  <Text style={[styles.loginLinkLarge, { fontFamily: 'Nunito_700Bold' }]}>Entre em Contato.</Text>
                 </TouchableOpacity>
               </Animated.View>
             </View>
@@ -209,13 +189,16 @@ export default function ResetPassword() {
 
       {popupConfig.show && (
         <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
-          <View style={[styles.popupContent, popupConfig.type === 'error' && { borderColor: '#EF4444' }]}>
+          <View style={[
+            styles.popupContent, 
+            { borderLeftColor: popupConfig.type === 'success' ? '#4ADE80' : '#EF4444' }
+          ]}>
             <Ionicons 
               name={popupConfig.type === 'success' ? "checkmark-circle" : "alert-circle"} 
               size={24} 
               color={popupConfig.type === 'success' ? "#4ADE80" : "#EF4444"} 
             />
-            <Text style={[styles.popupText, { fontFamily: 'Nunito_700Bold' }]}>{popupConfig.message}</Text>
+            <Text style={styles.popupText}>{popupConfig.message}</Text>
           </View>
         </Animated.View>
       )}

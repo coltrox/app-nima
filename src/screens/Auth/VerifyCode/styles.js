@@ -36,26 +36,26 @@ const styles = StyleSheet.create({
     lineHeight: width * 0.1,
   },
   descriptionLarge: {
-    fontSize: 15,
+    fontSize: 18,
     color: '#D1D5DB',
-    marginTop: 25,
+    marginTop: 80,
     lineHeight: 20,
   },
   otpContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between', // Distribui os 6 campos uniformemente
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 25,
     marginBottom: 30,
     width: '100%',
   },
   otpInput: {
     width: width * 0.13, // Tamanho ideal para 6 dígitos lado a lado
-    height: width * 0.15,
+    height: width * 0.20,
     backgroundColor: '#FFF',
     borderRadius: 10,
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 24,
     color: '#1E232C',
     elevation: 3,
     shadowColor: '#000',

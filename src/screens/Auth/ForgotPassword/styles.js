@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     lineHeight: width * 0.11,
   },
   descriptionLarge: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#D1D5DB',
     marginTop: 40,
     lineHeight: 22,

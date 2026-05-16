@@ -193,6 +193,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Nunito_700Bold',
   },
+  popupContainer: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    right: 20,
+    zIndex: 999,
+  },
+  popupContent: {
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    borderLeftWidth: 5,
+  },
+  popupText: {
+    marginLeft: 10,
+    color: '#000',
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+  }
 });
 
 export default styles;

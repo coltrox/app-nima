@@ -36,38 +36,37 @@ const styles = StyleSheet.create({
     lineHeight: width * 0.1,
   },
   descriptionLarge: {
-    fontSize: 15,
+    fontSize: 18,
     color: '#D1D5DB',
-    marginTop: 25,
+    marginTop: 80,
     lineHeight: 20,
   },
-  inputSection: {
+  inputContainer: {
     marginTop: 40,
     marginBottom: 20,
     zIndex: 100,
   },
-  inputField: {
-    backgroundColor: '#F7F8F9',
+  inputLarge: {
+    backgroundColor: '#FFF',
     height: 60,
     borderRadius: 12,
     paddingHorizontal: 20,
     fontSize: 16,
-    color: '#1E232C',
-    borderWidth: 1,
-    borderColor: '#E8ECF4',
+    color: '#000',
+    marginBottom: 15,
     ...Platform.select({
       web: { outlineStyle: 'none', cursor: 'text' },
     }),
   },
-  buttonReset: {
+  buttonLarge: {
     backgroundColor: '#1E232C',
     height: 55,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 10,
   },
-  buttonTextReset: {
+  buttonTextLarge: {
     color: '#FFF',
     fontSize: 16,
   },
@@ -75,45 +74,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 20,
   },
   footerTextLarge: {
     fontSize: 15,
     color: '#D1D5DB',
   },
-  helpLink: {
+  loginLinkLarge: {
     fontSize: 15,
     color: '#00CFE8',
   },
+  // --- Estilização do Popup ---
   popupContainer: {
     position: 'absolute',
     bottom: 50,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    left: 20,
+    right: 20,
     zIndex: 999,
   },
   popupContent: {
-    backgroundColor: '#1E232C',
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: '#333',
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    borderLeftWidth: 5,
   },
   popupText: {
-    color: '#FFF',
     marginLeft: 10,
+    color: '#000',
     fontSize: 14,
-    textAlign: 'center',
   }
 });
 

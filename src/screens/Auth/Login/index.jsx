@@ -10,10 +10,7 @@ import {
   Platform,
   Animated,
   Dimensions,
-  TouchableWithoutFeedback,
-  Keyboard,
   ActivityIndicator,
-  Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -39,6 +36,11 @@ const LoginScreen = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // --- ESTADOS PARA O POPUP ---
+  const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
+  const popupFade = useRef(new Animated.Value(0)).current;
+  const popupSlide = useRef(new Animated.Value(10)).current;
 
   const contentOpacity = useRef(new Animated.Value(1)).current; 
   const pawX = useRef(new Animated.Value(0)).current;
@@ -75,7 +77,6 @@ const LoginScreen = () => {
         setIsLoading(false);
       }
     };
-
     checkPersistedLogin();
   }, []);
 
@@ -88,39 +89,31 @@ const LoginScreen = () => {
     }, [])
   );
 
-  if (!fontsLoaded || (isLoading && !email)) {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#05082b', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#FFF" />
-      </View>
-    );
-  }
+  // --- FUNÇÃO PARA DISPARAR O POPUP ---
+  const triggerPopup = (message, type = 'success') => {
+    setPopupConfig({ show: true, message, type });
+    
+    Animated.parallel([
+      Animated.timing(popupFade, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(popupSlide, { toValue: 0, friction: 8, useNativeDriver: true })
+    ]).start();
+
+    setTimeout(() => {
+      Animated.timing(popupFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setPopupConfig(prev => ({ ...prev, show: false }));
+      });
+    }, 3000);
+  };
 
   const handleNavigation = (routeName) => {
     const targetX = width * 0.54; 
     const targetY = height * 0.05; 
 
     Animated.parallel([
-      Animated.timing(contentOpacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.timing(pawX, {
-        toValue: targetX,
-        duration: 500,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.timing(pawY, {
-        toValue: targetY,
-        duration: 500,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-      Animated.timing(pawRotate, {
-        toValue: 25, 
-        duration: 500,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
+      Animated.timing(contentOpacity, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(pawX, { toValue: targetX, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(pawY, { toValue: targetY, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(pawRotate, { toValue: 25, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
     ]).start(() => {
       navigation.navigate(routeName);
     });
@@ -128,7 +121,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Erro', 'Preencha email e senha.');
+      triggerPopup('Preencha email e senha.', 'error');
       return;
     }
 
@@ -137,12 +130,10 @@ const LoginScreen = () => {
       const data = await authService.login(email, password);
 
       if (rememberMe) {
-        // Salva apenas se o checkbox estiver marcado
         await AsyncStorage.setItem('@nima_token', data.token || 'logged');
         await AsyncStorage.setItem('@nima_email', email);
         await AsyncStorage.setItem('@nima_password', password);
       } else {
-        // Garante que o storage está limpo se não quiser ser lembrado
         await AsyncStorage.removeItem('@nima_token');
         await AsyncStorage.removeItem('@nima_email');
         await AsyncStorage.removeItem('@nima_password');
@@ -150,11 +141,20 @@ const LoginScreen = () => {
 
       handleNavigation('Home');
     } catch (error) {
-      Alert.alert('Erro', String(error));
+      // Exibe o erro vindo do backend no Popup customizado
+      triggerPopup(String(error), 'error');
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!fontsLoaded || (isLoading && !email)) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#05082b', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#FFF" />
+      </View>
+    );
+  }
 
   const pawRotateDeg = pawRotate.interpolate({
     inputRange: [-10, 25],
@@ -162,48 +162,19 @@ const LoginScreen = () => {
   });
 
   return (
-    <LinearGradient
-      colors={['#05082b', '#0a1550', '#0d2680', '#1a3fae']}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#05082b', '#0a1550', '#0d2680', '#1a3fae']} style={styles.container}>
       <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="always" 
-          >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
             <View style={{ flex: 1, width: '100%' }} pointerEvents="box-none">
               
               <View style={styles.logoContainer} pointerEvents="box-none">
-                <Animated.View 
-                  pointerEvents="none" 
-                  style={[styles.pawWrapper, {
-                    transform: [
-                      { translateX: pawX },
-                      { translateY: pawY },
-                      { rotate: pawRotateDeg },
-                    ],
-                  }]}
-                >
+                <Animated.View pointerEvents="none" style={[styles.pawWrapper, { transform: [{ translateX: pawX }, { translateY: pawY }, { rotate: pawRotateDeg }] }]}>
                   <Ionicons name="paw" size={width * 0.22} color="#FFFFFF" />
                 </Animated.View>
 
-                <Animated.View 
-                  pointerEvents="none"
-                  style={{ 
-                    opacity: contentOpacity, 
-                    flexDirection: 'row', 
-                    alignItems: 'baseline',
-                    paddingTop: 15 
-                  }}
-                >
-                  <Text style={styles.logoText}>
-                    N<Text style={{ fontWeight: 'normal' }}>ima</Text>
-                  </Text>
+                <Animated.View pointerEvents="none" style={{ opacity: contentOpacity, flexDirection: 'row', alignItems: 'baseline', paddingTop: 15 }}>
+                  <Text style={styles.logoText}>N<Text style={{ fontWeight: 'normal' }}>ima</Text></Text>
                   <View style={styles.dot} />
                 </Animated.View>
               </View>
@@ -231,48 +202,29 @@ const LoginScreen = () => {
                     secureTextEntry={!showPassword}
                     editable={!isLoading}
                   />
-                  <TouchableOpacity
-                    style={styles.eyeButton}
-                    onPress={() => setShowPassword(!showPassword)}
-                  >
+                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
                     <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.bottomInputRow}>
-                  <TouchableOpacity
-                    style={styles.rememberContainer}
-                    activeOpacity={0.7}
-                    onPress={() => setRememberMe(!rememberMe)}
-                  >
+                  <TouchableOpacity style={styles.rememberContainer} activeOpacity={0.7} onPress={() => setRememberMe(!rememberMe)}>
                     <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
                       {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
                     </View>
                     <Text style={styles.rememberText}>Lembrar-me</Text>
                   </TouchableOpacity>
-
                   <TouchableOpacity onPress={() => handleNavigation('ForgotPassword')}>
                     <Text style={styles.forgotText}>Esqueceu a senha?</Text>
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity 
-                  style={styles.loginButton} 
-                  activeOpacity={0.8}
-                  onPress={handleLogin}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={styles.loginButtonText}>Entrar</Text>
-                  )}
+                <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={handleLogin} disabled={isLoading}>
+                  {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Entrar</Text>}
                 </TouchableOpacity>
 
                 <View style={styles.divider}>
-                  <View style={styles.line} />
-                  <Text style={styles.orText}>OU</Text>
-                  <View style={styles.line} />
+                  <View style={styles.line} /><Text style={styles.orText}>OU</Text><View style={styles.line} />
                 </View>
 
                 <TouchableOpacity style={styles.socialButton}>
@@ -296,6 +248,23 @@ const LoginScreen = () => {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* --- RENDERIZAÇÃO DO POPUP --- */}
+      {popupConfig.show && (
+        <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
+          <View style={[
+            styles.popupContent, 
+            { borderLeftColor: popupConfig.type === 'success' ? '#4ADE80' : '#EF4444' }
+          ]}>
+            <Ionicons 
+              name={popupConfig.type === 'success' ? "checkmark-circle" : "alert-circle"} 
+              size={24} 
+              color={popupConfig.type === 'success' ? "#4ADE80" : "#EF4444"} 
+            />
+            <Text style={styles.popupText}>{popupConfig.message}</Text>
+          </View>
+        </Animated.View>
+      )}
     </LinearGradient>
   );
 };
