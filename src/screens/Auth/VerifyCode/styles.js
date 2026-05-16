@@ -8,12 +8,13 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    paddingHorizontal: width * 0.07,
+    paddingHorizontal: width * 0.05, // Reduzido para dar mais espaço aos 6 inputs
     paddingTop: 20,
+    zIndex: 5,
   },
   pawFixed: {
     position: 'absolute',
-    zIndex: 0,
+    zIndex: -1,
   },
   backBtn: {
     width: 45,
@@ -42,32 +43,40 @@ const styles = StyleSheet.create({
   },
   otpContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', // Distribui os 6 campos uniformemente
+    alignItems: 'center',
     marginTop: 40,
     marginBottom: 30,
+    width: '100%',
   },
   otpInput: {
-    width: width * 0.18,
-    height: width * 0.18,
+    width: width * 0.13, // Tamanho ideal para 6 dígitos lado a lado
+    height: width * 0.15,
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    borderRadius: 10,
     textAlign: 'center',
-    fontSize: 24,
+    fontSize: 22,
     color: '#1E232C',
-    // Sombra leve para os inputs
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    paddingVertical: 0,
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+      },
+    }),
   },
   buttonVerify: {
-    backgroundColor: '#1E232C', // Tom escuro como na imagem
-    height: 55,
-    borderRadius: 12,
+    backgroundColor: '#1E232C',
+    height: 58,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
+    width: '100%',
   },
   buttonTextVerify: {
     color: '#FFF',
@@ -77,14 +86,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 'auto',
   },
   footerTextLarge: {
-    fontSize: 15,
     color: '#D1D5DB',
+    fontSize: 15,
   },
   resendLink: {
+    color: '#FFF',
     fontSize: 15,
-    color: '#00CFE8', // Tom de ciano conforme o "Reenvie" da imagem
+    textDecorationLine: 'underline',
   },
 });
 

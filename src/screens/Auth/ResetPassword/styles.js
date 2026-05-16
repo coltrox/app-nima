@@ -10,10 +10,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: width * 0.07,
     paddingTop: 20,
+    zIndex: 5,
   },
   pawFixed: {
     position: 'absolute',
-    zIndex: 0,
+    zIndex: -1,
   },
   backBtn: {
     width: 45,
@@ -43,6 +44,7 @@ const styles = StyleSheet.create({
   inputSection: {
     marginTop: 40,
     marginBottom: 20,
+    zIndex: 100,
   },
   inputField: {
     backgroundColor: '#F7F8F9',
@@ -53,6 +55,9 @@ const styles = StyleSheet.create({
     color: '#1E232C',
     borderWidth: 1,
     borderColor: '#E8ECF4',
+    ...Platform.select({
+      web: { outlineStyle: 'none', cursor: 'text' },
+    }),
   },
   buttonReset: {
     backgroundColor: '#1E232C',
@@ -79,7 +84,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#00CFE8',
   },
-  // ESTILOS DO POPUP
   popupContainer: {
     position: 'absolute',
     bottom: 50,
@@ -109,6 +113,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     marginLeft: 10,
     fontSize: 14,
+    textAlign: 'center',
   }
 });
 

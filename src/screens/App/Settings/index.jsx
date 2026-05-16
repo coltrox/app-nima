@@ -7,14 +7,35 @@ import {
   SafeAreaView, 
   StatusBar,
   Platform,
-  Switch
+  Switch,
+  Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import necessário
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { styles } from './styles';
 
 const SettingsScreen = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
   const [darkMode, setDarkMode] = React.useState(false);
+
+  // FUNÇÃO DE LOGOUT CORRIGIDA
+  const handleLogout = async () => {
+    try {
+      // Remove o token que mantém a sessão ativa (Persistência)
+      await AsyncStorage.removeItem('@nima_token'); 
+      
+      // Opcional: Se você quiser que o app esqueça o email/senha do "Lembrar-me" 
+      // ao sair manualmente, descomente as linhas abaixo:
+      // await AsyncStorage.removeItem('@nima_email');
+      // await AsyncStorage.removeItem('@nima_password');
+
+      // Reseta a navegação para a tela de Login
+      navigation.replace('Login');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível sair da conta corretamente.');
+      console.error('Erro ao limpar cache de login:', error);
+    }
+  };
 
   const settingSections = [
     {
@@ -93,7 +114,7 @@ const SettingsScreen = ({ navigation }) => {
 
         <TouchableOpacity 
           style={styles.logoutBtn}
-          onPress={() => navigation.replace('Login')}
+          onPress={handleLogout} // Chama a função que limpa o storage
         >
           <Feather name="log-out" size={20} color="#EF4444" />
           <Text style={styles.logoutText}>Sair da Conta</Text>

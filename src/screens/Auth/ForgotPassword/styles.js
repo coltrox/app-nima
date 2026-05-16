@@ -8,13 +8,14 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    paddingHorizontal: width * 0.07, // Padding lateral responsivo
+    paddingHorizontal: width * 0.07,
     paddingTop: 28,
-    paddingBottom: height * 0.04, // Padding inferior para o footer não colar na borda
+    paddingBottom: height * 0.04,
+    zIndex: 10,
   },
   pawFixed: {
     position: 'absolute',
-    zIndex: 1,
+    zIndex: -1,
   },
   backBtn: {
     width: 45,
@@ -30,7 +31,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   titleLarge: {
-    fontSize: width * 0.1, // Fonte responsiva (aprox 38-42)
+    fontSize: width * 0.1,
     color: '#FFF',
     lineHeight: width * 0.11,
   },
@@ -43,6 +44,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     gap: 15,
     marginTop: height * 0.04,
+    zIndex: 999, // Eleva o container de inputs acima de tudo
   },
   inputLarge: {
     backgroundColor: '#FFF',
@@ -51,6 +53,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     color: '#000',
+    // IMPORTANTE PARA WEB
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        cursor: 'text',
+      },
+    }),
   },
   buttonLarge: {
     backgroundColor: '#007AFF',
@@ -67,6 +76,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20,
   },
   footerTextLarge: {
     fontSize: 15,

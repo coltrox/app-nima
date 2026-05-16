@@ -1,22 +1,18 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
-const logoFontSize = width * 0.18; // Escala dinâmica para o logo
+const logoFontSize = width * 0.18;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#05082b',
   },
-  gradient: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: width * 0.08, 
-    paddingVertical: height * 0.05, // Vertical proporcional à altura
-    gap: height * 0.02, // Espaçamento entre elementos responsivo
+    paddingVertical: height * 0.05,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -24,7 +20,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 12,
     marginBottom: 10,
-    paddingTop: 15, // IMPORTANTE: Espaço extra para a fonte não cortar no topo
+    paddingTop: 15,
+    zIndex: 1, 
   },
   pawWrapper: {
     marginTop: 6,
@@ -33,25 +30,25 @@ const styles = StyleSheet.create({
     fontSize: logoFontSize > 75 ? 75 : logoFontSize,
     fontFamily: 'Nunito_800ExtraBold',
     color: '#FFFFFF',
-    includeFontPadding: false, // Remove preenchimento extra nativo do Android
+    includeFontPadding: false,
     textAlignVertical: 'center',
-    // Removi o lineHeight fixo para evitar o corte superior
-  },
-  logoTextPlain: {
-    color: '#FFFFFF',
-    fontFamily: 'Nunito_800ExtraBold',
   },
   dot: {
     position: 'absolute',
-    width: width * 0.040, // Ponto proporcional à largura
+    width: width * 0.040,
     height: width * 0.040,
     borderRadius: 10,
     backgroundColor: '#2259d1',
     top: Platform.OS === 'ios' ? '34%' : '29%', 
     left: "31.2%",
   },
+  formContainer: {
+    gap: height * 0.02,
+    zIndex: 99, 
+    position: 'relative',
+  },
   welcomeText: {
-    fontSize: width * 0.05, // Texto de boas-vindas responsivo
+    fontSize: width * 0.05,
     fontFamily: 'Nunito_700Bold',
     color: 'white',
     textAlign: 'center',
@@ -60,13 +57,16 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#F9FAFB',
     paddingHorizontal: 15,
-    height: 58, // Altura fixa para toque confortável (padrão UX)
+    height: 58,
     borderRadius: 12,
     fontSize: 16,
     fontFamily: 'Nunito_400Regular',
     color: '#1F2937',
     ...Platform.select({
-      web: { outlineStyle: 'none' }
+      web: { 
+        outlineStyle: 'none',
+        cursor: 'text' 
+      }
     })
   },
   inputWrapper: {
@@ -134,8 +134,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
-    elevation: 4, // Sombra leve no Android
-    shadowColor: '#000', // Sombra no iOS
+    elevation: 4,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,11 @@ import {
   Animated,
   Dimensions,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -25,6 +28,7 @@ import {
 } from '@expo-google-fonts/nunito';
 
 import styles from './styles';
+import authService from '../authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,6 +38,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const contentOpacity = useRef(new Animated.Value(1)).current; 
   const pawX = useRef(new Animated.Value(0)).current;
@@ -47,6 +52,33 @@ const LoginScreen = () => {
     Nunito_800ExtraBold,
   });
 
+  useEffect(() => {
+    const checkPersistedLogin = async () => {
+      try {
+        const userToken = await AsyncStorage.getItem('@nima_token');
+        const savedEmail = await AsyncStorage.getItem('@nima_email');
+        const savedPassword = await AsyncStorage.getItem('@nima_password');
+
+        if (userToken) {
+          navigation.replace('Home');
+          return;
+        }
+
+        if (savedEmail) {
+          setEmail(savedEmail);
+          setPassword(savedPassword || '');
+          setRememberMe(true);
+        }
+      } catch (e) {
+        console.error('Erro na persistência', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkPersistedLogin();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       contentOpacity.setValue(1);
@@ -56,7 +88,13 @@ const LoginScreen = () => {
     }, [])
   );
 
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || (isLoading && !email)) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#05082b', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#FFF" />
+      </View>
+    );
+  }
 
   const handleNavigation = (routeName) => {
     const targetX = width * 0.54; 
@@ -66,34 +104,56 @@ const LoginScreen = () => {
       Animated.timing(contentOpacity, {
         toValue: 0,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(pawX, {
         toValue: targetX,
         duration: 500,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(pawY, {
         toValue: targetY,
         duration: 500,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
       Animated.timing(pawRotate, {
         toValue: 25, 
         duration: 500,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== 'web',
       }),
     ]).start(() => {
-      if (routeName === 'Home') {
-        // Reset impede o usuário de voltar para a tela de login ao deslogar
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
-      } else {
-        navigation.navigate(routeName);
-      }
+      navigation.navigate(routeName);
     });
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Erro', 'Preencha email e senha.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const data = await authService.login(email, password);
+
+      if (rememberMe) {
+        // Salva apenas se o checkbox estiver marcado
+        await AsyncStorage.setItem('@nima_token', data.token || 'logged');
+        await AsyncStorage.setItem('@nima_email', email);
+        await AsyncStorage.setItem('@nima_password', password);
+      } else {
+        // Garante que o storage está limpo se não quiser ser lembrado
+        await AsyncStorage.removeItem('@nima_token');
+        await AsyncStorage.removeItem('@nima_email');
+        await AsyncStorage.removeItem('@nima_password');
+      }
+
+      handleNavigation('Home');
+    } catch (error) {
+      Alert.alert('Erro', String(error));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const pawRotateDeg = pawRotate.interpolate({
@@ -114,116 +174,125 @@ const LoginScreen = () => {
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled" 
-            alwaysBounceVertical={false}
+            keyboardShouldPersistTaps="always" 
           >
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <View style={{ flex: 1, width: '100%' }}>
-                
-                <View style={styles.logoContainer}>
-                  <Animated.View style={[styles.pawWrapper, {
+            <View style={{ flex: 1, width: '100%' }} pointerEvents="box-none">
+              
+              <View style={styles.logoContainer} pointerEvents="box-none">
+                <Animated.View 
+                  pointerEvents="none" 
+                  style={[styles.pawWrapper, {
                     transform: [
                       { translateX: pawX },
                       { translateY: pawY },
                       { rotate: pawRotateDeg },
                     ],
-                  }]}>
-                    <Ionicons name="paw" size={width * 0.22} color="#FFFFFF" />
-                  </Animated.View>
+                  }]}
+                >
+                  <Ionicons name="paw" size={width * 0.22} color="#FFFFFF" />
+                </Animated.View>
 
-                  <Animated.View style={{ 
+                <Animated.View 
+                  pointerEvents="none"
+                  style={{ 
                     opacity: contentOpacity, 
                     flexDirection: 'row', 
                     alignItems: 'baseline',
                     paddingTop: 15 
-                  }}>
-                    <Text style={[styles.logoText, { fontFamily: 'Nunito_800ExtraBold' }]}>
-                      N<Text style={{ fontWeight: 'normal' }}>ima</Text>
-                    </Text>
-                    <View style={styles.dot} />
-                  </Animated.View>
-                </View>
-
-                <Animated.View style={{ opacity: contentOpacity, gap: height * 0.02 }}>
-                  <Text style={[styles.welcomeText, { fontFamily: 'Nunito_600SemiBold' }]}>
-                    Bem-vindo de volta!
+                  }}
+                >
+                  <Text style={styles.logoText}>
+                    N<Text style={{ fontWeight: 'normal' }}>ima</Text>
                   </Text>
-
-                  <TextInput
-                    style={[styles.input, { fontFamily: 'Nunito_400Regular' }]}
-                    placeholder="Email ou Nome de Usuário"
-                    placeholderTextColor="#9CA3AF"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                  />
-
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={[styles.inputWithIcon, { fontFamily: 'Nunito_400Regular' }]}
-                      placeholder="Senha"
-                      placeholderTextColor="#9CA3AF"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                    />
-                    <TouchableOpacity
-                      style={styles.eyeButton}
-                      onPress={() => setShowPassword(!showPassword)}
-                    >
-                      <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#9CA3AF" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.bottomInputRow}>
-                    <TouchableOpacity
-                      style={styles.rememberContainer}
-                      onPress={() => setRememberMe(!rememberMe)}
-                    >
-                      <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                        {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
-                      </View>
-                      <Text style={[styles.rememberText, { fontFamily: 'Nunito_400Regular' }]}>Lembrar-me</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={() => handleNavigation('ForgotPassword')}>
-                      <Text style={[styles.forgotText, { fontFamily: 'Nunito_600SemiBold' }]}>Esqueceu a senha?</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity 
-                    style={styles.loginButton} 
-                    activeOpacity={0.8}
-                    onPress={() => handleNavigation('Home')}
-                  >
-                    <Text style={[styles.loginButtonText, { fontFamily: 'Nunito_700Bold' }]}>Entrar</Text>
-                  </TouchableOpacity>
-
-                  <View style={styles.divider}>
-                    <View style={styles.line} />
-                    <Text style={[styles.orText, { fontFamily: 'Nunito_600SemiBold' }]}>OU</Text>
-                    <View style={styles.line} />
-                  </View>
-
-                  <TouchableOpacity style={styles.socialButton}>
-                    <Ionicons name="logo-google" size={20} color="#DB4437" />
-                    <Text style={[styles.socialText, { fontFamily: 'Nunito_600SemiBold' }]}>Entrar com o Google</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.socialButton}>
-                    <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-                    <Text style={[styles.socialText, { fontFamily: 'Nunito_600SemiBold' }]}>Entrar com o Facebook</Text>
-                  </TouchableOpacity>
-
-                  <View style={styles.footerRow}>
-                    <Text style={[styles.footerText, { fontFamily: 'Nunito_400Regular' }]}>Ainda não tem uma conta? </Text>
-                    <TouchableOpacity onPress={() => handleNavigation('Register')}>
-                      <Text style={[styles.signupText, { fontFamily: 'Nunito_700Bold' }]}>Cadastre-se</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <View style={styles.dot} />
                 </Animated.View>
               </View>
-            </TouchableWithoutFeedback>
+
+              <Animated.View style={[styles.formContainer, { opacity: contentOpacity }]}>
+                <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
+
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email ou Nome de Usuário"
+                  placeholderTextColor="#9CA3AF"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.inputWithIcon}
+                    placeholder="Senha"
+                    placeholderTextColor="#9CA3AF"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    editable={!isLoading}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.bottomInputRow}>
+                  <TouchableOpacity
+                    style={styles.rememberContainer}
+                    activeOpacity={0.7}
+                    onPress={() => setRememberMe(!rememberMe)}
+                  >
+                    <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                      {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </View>
+                    <Text style={styles.rememberText}>Lembrar-me</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity onPress={() => handleNavigation('ForgotPassword')}>
+                    <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.loginButton} 
+                  activeOpacity={0.8}
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Entrar</Text>
+                  )}
+                </TouchableOpacity>
+
+                <View style={styles.divider}>
+                  <View style={styles.line} />
+                  <Text style={styles.orText}>OU</Text>
+                  <View style={styles.line} />
+                </View>
+
+                <TouchableOpacity style={styles.socialButton}>
+                  <Ionicons name="logo-google" size={20} color="#DB4437" />
+                  <Text style={styles.socialText}>Entrar com o Google</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.socialButton}>
+                  <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+                  <Text style={styles.socialText}>Entrar com o Facebook</Text>
+                </TouchableOpacity>
+
+                <View style={styles.footerRow}>
+                  <Text style={styles.footerText}>Ainda não tem uma conta? </Text>
+                  <TouchableOpacity onPress={() => handleNavigation('Register')}>
+                    <Text style={styles.signupText}>Cadastre-se</Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
