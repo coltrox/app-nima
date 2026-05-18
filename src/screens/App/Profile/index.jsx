@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { styles } from './styles';
-import Navbar from '../components/NavBar/navbar';
+import Navbar from '../../components/NavBar/navbar';
 
 const ProfileScreen = ({ navigation }) => {
   // Função para deslogar e limpar a pilha de navegação

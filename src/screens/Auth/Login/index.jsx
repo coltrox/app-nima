@@ -37,7 +37,6 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- ESTADOS PARA O POPUP ---
   const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
   const popupFade = useRef(new Animated.Value(0)).current;
   const popupSlide = useRef(new Animated.Value(10)).current;
@@ -58,12 +57,20 @@ const LoginScreen = () => {
     const checkPersistedLogin = async () => {
       try {
         const userToken = await AsyncStorage.getItem('@nima_token');
+        const userRole = await AsyncStorage.getItem('@nima_user_role');
+        const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
         const savedEmail = await AsyncStorage.getItem('@nima_email');
         const savedPassword = await AsyncStorage.getItem('@nima_password');
 
-        if (userToken) {
-          navigation.replace('Home');
-          return;
+        if (userToken && wasRemembered === 'true') {
+          if (userRole === 'admin') {
+            navigation.replace('AdminDashboard');
+          } else if (userRole === 'ong') {
+            navigation.replace('OngDashboard');
+          } else {
+            navigation.replace('Home');
+          }
+          return; 
         }
 
         if (savedEmail) {
@@ -89,10 +96,8 @@ const LoginScreen = () => {
     }, [])
   );
 
-  // --- FUNÇÃO PARA DISPARAR O POPUP ---
   const triggerPopup = (message, type = 'success') => {
     setPopupConfig({ show: true, message, type });
-    
     Animated.parallel([
       Animated.timing(popupFade, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.spring(popupSlide, { toValue: 0, friction: 8, useNativeDriver: true })
@@ -105,7 +110,8 @@ const LoginScreen = () => {
     }, 3000);
   };
 
-  const handleNavigation = (routeName) => {
+  // Função de navegação com animação de patinha para telas internas (Home/Dashboards)
+  const handleAuthNavigation = (role) => {
     const targetX = width * 0.54; 
     const targetY = height * 0.05; 
 
@@ -115,8 +121,19 @@ const LoginScreen = () => {
       Animated.timing(pawY, { toValue: targetY, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
       Animated.timing(pawRotate, { toValue: 25, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
     ]).start(() => {
-      navigation.navigate(routeName);
+      if (role === 'admin') {
+        navigation.replace('AdminDashboard');
+      } else if (role === 'ong') {
+        navigation.replace('OngDashboard');
+      } else {
+        navigation.replace('Home');
+      }
     });
+  };
+
+  // Função para navegação comum (Register/Forgot Password)
+  const handleSimpleNavigation = (routeName) => {
+    navigation.navigate(routeName);
   };
 
   const handleLogin = async () => {
@@ -129,19 +146,23 @@ const LoginScreen = () => {
     try {
       const data = await authService.login(email, password);
 
+      // Salva os dados necessários para a sessão atual
+      await AsyncStorage.setItem('@nima_token', data.token);
+      await AsyncStorage.setItem('@nima_user_role', data.user.cargo);
+      await AsyncStorage.setItem('@nima_remember_me', rememberMe ? 'true' : 'false');
+
       if (rememberMe) {
-        await AsyncStorage.setItem('@nima_token', data.token || 'logged');
         await AsyncStorage.setItem('@nima_email', email);
         await AsyncStorage.setItem('@nima_password', password);
       } else {
-        await AsyncStorage.removeItem('@nima_token');
         await AsyncStorage.removeItem('@nima_email');
         await AsyncStorage.removeItem('@nima_password');
       }
 
-      handleNavigation('Home');
+      // Executa o redirecionamento baseado no cargo retornado pela API
+      handleAuthNavigation(data.user.cargo);
+
     } catch (error) {
-      // Exibe o erro vindo do backend no Popup customizado
       triggerPopup(String(error), 'error');
     } finally {
       setIsLoading(false);
@@ -166,14 +187,14 @@ const LoginScreen = () => {
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-            <View style={{ flex: 1, width: '100%' }} pointerEvents="box-none">
+            <View style={{ flex: 1, width: '100%' }}>
               
-              <View style={styles.logoContainer} pointerEvents="box-none">
-                <Animated.View pointerEvents="none" style={[styles.pawWrapper, { transform: [{ translateX: pawX }, { translateY: pawY }, { rotate: pawRotateDeg }] }]}>
+              <View style={styles.logoContainer}>
+                <Animated.View style={[styles.pawWrapper, { transform: [{ translateX: pawX }, { translateY: pawY }, { rotate: pawRotateDeg }] }]}>
                   <Ionicons name="paw" size={width * 0.22} color="#FFFFFF" />
                 </Animated.View>
 
-                <Animated.View pointerEvents="none" style={{ opacity: contentOpacity, flexDirection: 'row', alignItems: 'baseline', paddingTop: 15 }}>
+                <Animated.View style={{ opacity: contentOpacity, flexDirection: 'row', alignItems: 'baseline', paddingTop: 15 }}>
                   <Text style={styles.logoText}>N<Text style={{ fontWeight: 'normal' }}>ima</Text></Text>
                   <View style={styles.dot} />
                 </Animated.View>
@@ -214,7 +235,7 @@ const LoginScreen = () => {
                     </View>
                     <Text style={styles.rememberText}>Lembrar-me</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleNavigation('ForgotPassword')}>
+                  <TouchableOpacity onPress={() => handleSimpleNavigation('ForgotPassword')}>
                     <Text style={styles.forgotText}>Esqueceu a senha?</Text>
                   </TouchableOpacity>
                 </View>
@@ -239,7 +260,7 @@ const LoginScreen = () => {
 
                 <View style={styles.footerRow}>
                   <Text style={styles.footerText}>Ainda não tem uma conta? </Text>
-                  <TouchableOpacity onPress={() => handleNavigation('Register')}>
+                  <TouchableOpacity onPress={() => handleSimpleNavigation('Register')}>
                     <Text style={styles.signupText}>Cadastre-se</Text>
                   </TouchableOpacity>
                 </View>
@@ -249,7 +270,6 @@ const LoginScreen = () => {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {/* --- RENDERIZAÇÃO DO POPUP --- */}
       {popupConfig.show && (
         <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
           <View style={[

@@ -13,8 +13,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { styles, colors } from './styles';
 
-import Navbar from '../components/NavBar/navbar';
-import Questionario from '../components/Questionario/Questionario';
+import Navbar from '../../components/NavBar/navbar';
+import Questionario from '../../components/Questionario/Questionario';
 
 const HomeScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');

@@ -9,7 +9,7 @@ import {
   StatusBar 
 } from 'react-native';
 import { styles } from './styles'; 
-import Navbar from '../components/NavBar/navbar';
+import Navbar from '../../components/NavBar/navbar';
 
 const ongs = [
   { id: '1', name: 'ONG Patinhas Livres', cause: 'Resgate e Reabilitação', meta: 'R$ 5.000', image: 'https://images.unsplash.com/photo-1481391319762-47dff72954d9?q=80&w=400' },

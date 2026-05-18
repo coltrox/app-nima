@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { styles } from './styles';
-import Navbar from '../components/NavBar/navbar';
+import Navbar from '../../components/NavBar/navbar';
 
 const MyPetScreen = ({ navigation }) => {
   return (

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
-import Navbar from '../components/NavBar/navbar';
+import Navbar from '../../components/NavBar/navbar';
 
 const Guide = ({ navigation }) => {
   return (

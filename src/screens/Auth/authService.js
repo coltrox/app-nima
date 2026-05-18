@@ -63,6 +63,9 @@ const authService = {
    * O backend agora valida se a senha é igual à anterior e retorna erro 400 se for.
    */
   resetPassword: async (email, code, newPassword) => {
+
+    
+
     try {
       const response = await axios.post(`${API_URL}/reset-password`, { 
         email, 
