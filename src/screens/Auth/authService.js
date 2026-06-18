@@ -1,4 +1,5 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'http://192.168.0.247:3000/api/auth';
 
@@ -129,6 +130,35 @@ const authService = {
     } catch (error) {
       const message = error.response?.data?.message || 'Erro ao redefinir senha.';
       console.error(`[FRONT] Erro no ResetPassword: ${message}`);
+      throw message;
+    }
+  },
+
+  /**
+   * Método auxiliar para extrair apenas o primeiro nome do usuário.
+   */
+  getFirstName: (fullName) => {
+    if (!fullName) return 'Usuário';
+    return fullName.trim().split(' ')[0];
+  },
+
+  /**
+   * Envia os dados do formulário de conclusão de perfil para o backend.
+   */
+  completeProfile: async (profileData) => {
+    try {
+      const token = await AsyncStorage.getItem('@nima_token');
+      const response = await axios.post(`${API_URL}/complete-profile`, profileData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      // Salva localmente que o formulário foi respondido com sucesso
+      await AsyncStorage.setItem('@nima_profile_completed', 'true');
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Erro ao salvar o formulário.';
       throw message;
     }
   }

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Modal, View, Text, TouchableOpacity, ScrollView, 
-  TextInput, Dimensions, SafeAreaView, KeyboardAvoidingView, Platform 
+  TextInput, Dimensions, SafeAreaView, KeyboardAvoidingView, Platform, Animated
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +12,8 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const Questionario = ({ visible, onClose, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef(null);
 
   const questions = [
     { id: 1, section: 'Perfil', icon: 'account-clock', type: 'select', question: 'Quanto tempo o animal ficará sozinho por dia?', options: ['Menos de 4 horas', 'Entre 4 e 8 horas', 'Mais de 8 horas'] },
@@ -22,8 +24,8 @@ const Questionario = ({ visible, onClose, onComplete }) => {
     { id: 6, section: 'Ambiente', icon: 'shield-check', type: 'select', question: 'O ambiente é seguro contra fugas?', options: ['Sim', 'Não'] },
     { id: 7, section: 'Ambiente', icon: 'door-open', type: 'select', question: 'Acesso ao interior da casa?', options: ['Sim', 'Não'] },
     { id: 8, section: 'Família', icon: 'human-child', type: 'select', question: 'Existem crianças na residência?', options: ['Sim', 'Não'] },
-    { id: 9, section: 'Família', icon: 'baby-face-outline', type: 'input', question: 'Se sim, qual a faixa etária das crianças?' },
-    { id: 10, section: 'Família', icon: 'paw', type: 'input', question: 'Existem outros animais?' },
+    { id: 9, section: 'Família', icon: 'baby-face-outline', type: 'input', question: 'Qual a faixa etária das crianças?' },
+    { id: 10, section: 'Família', icon: 'paw', type: 'input', question: 'Existem outros animais? Se sim, quais?' },
     { id: 11, section: 'Preferências', icon: 'heart', type: 'select', question: 'Preferência de espécie:', options: ['Cachorro', 'Gato', 'Indiferente'] },
     { id: 12, section: 'Preferências', icon: 'resize', type: 'select', question: 'Porte preferido:', options: ['Pequeno', 'Médio', 'Grande', 'Indiferente'] },
     { id: 13, section: 'Preferências', icon: 'calendar-range', type: 'select', question: 'Idade preferida:', options: ['Filhote', 'Adulto', 'Idoso'] },
@@ -39,28 +41,69 @@ const Questionario = ({ visible, onClose, onComplete }) => {
   const currentQ = questions[currentStep];
   const progress = ((currentStep + 1) / questions.length) * 100;
 
+  const animateTransition = (callback) => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      })
+    ]).start();
+
+    setTimeout(() => {
+      callback();
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, 120);
+  };
+
   const handleOptionSelect = (option) => {
-    const newAnswers = { ...answers, [currentQ.id]: option };
-    setAnswers(newAnswers);
-    
-    if (currentStep < questions.length - 1) {
-      setTimeout(() => {
-        setCurrentStep(currentStep + 1);
-      }, 150);
-    }
+    setAnswers({ ...answers, [currentQ.id]: option });
   };
 
   const handleNext = () => {
+    if (currentQ.id === 8 && answers[8] === 'Não') {
+      animateTransition(() => setCurrentStep(currentStep + 2));
+      return;
+    }
+
     if (currentStep < questions.length - 1) {
-      setCurrentStep(currentStep + 1);
+      animateTransition(() => setCurrentStep(currentStep + 1));
     } else {
+      // Cria uma estrutura limpa associando a pergunta com a resposta dada
+      const relatorioCompleto = questions.map(q => ({
+        id: q.id,
+        secao: q.section,
+        pergunta: q.question,
+        resposta: answers[q.id] || (q.id === 9 && answers[8] === 'Não' ? 'Não se aplica' : '')
+      }));
+
+      console.log("==================================================");
+      console.log("📋 QUESTÕES E RESPOSTAS DO QUESTIONÁRIO:");
+      console.log("==================================================");
+      console.log(JSON.stringify(relatorioCompleto, null, 2));
+      console.log("==================================================");
+      
       onComplete(answers);
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 0) setCurrentStep(currentStep - 1);
+    if (currentQ.id === 10 && answers[8] === 'Não') {
+      animateTransition(() => setCurrentStep(currentStep - 2));
+      return;
+    }
+
+    if (currentStep > 0) {
+      animateTransition(() => setCurrentStep(currentStep - 1));
+    }
   };
+
+  const isCurrentAnswered = answers[currentQ.id] !== undefined && answers[currentQ.id] !== '';
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -97,52 +140,59 @@ const Questionario = ({ visible, onClose, onComplete }) => {
           </View>
 
           <ScrollView 
+            ref={scrollViewRef}
             contentContainerStyle={styles.content} 
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.questionCard}>
-              <MaterialCommunityIcons 
-                name={currentQ.icon} 
-                size={SCREEN_HEIGHT * 0.045} 
-                color={colors.blue} 
-                style={{ marginBottom: 12 }} 
-              />
-              <Text style={styles.questionText}>{currentQ.question}</Text>
-            </View>
+            <Animated.View style={{ opacity: fadeAnim }}>
+              <View style={styles.questionCard}>
+                <View style={styles.iconContainer}>
+                  <MaterialCommunityIcons 
+                    name={currentQ.icon} 
+                    size={SCREEN_HEIGHT * 0.038} 
+                    color={colors.blue} 
+                  />
+                </View>
+                <Text style={styles.questionText}>{currentQ.question}</Text>
+              </View>
 
-            <View style={styles.optionsWrapper}>
-              {currentQ.type === 'select' ? (
-                currentQ.options.map((option) => (
-                  <TouchableOpacity 
-                    key={option}
-                    activeOpacity={0.6}
-                    style={[
-                      styles.optionButton,
-                      answers[currentQ.id] === option && styles.optionSelected
-                    ]}
-                    onPress={() => handleOptionSelect(option)}
-                  >
-                    <Text style={[
-                      styles.optionText,
-                      answers[currentQ.id] === option && styles.optionTextSelected
-                    ]}>{option}</Text>
-                    {answers[currentQ.id] === option && (
-                      <Ionicons name="checkmark-circle" size={20} color={colors.blue} />
-                    )}
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <TextInput
-                  style={styles.input}
-                  placeholder="Toque para digitar..."
-                  placeholderTextColor={colors.gray}
-                  multiline
-                  value={answers[currentQ.id] || ''}
-                  onChangeText={(text) => setAnswers({...answers, [currentQ.id]: text})}
-                />
-              )}
-            </View>
+              <View style={styles.optionsWrapper}>
+                {currentQ.type === 'select' ? (
+                  currentQ.options.map((option) => {
+                    const isSelected = answers[currentQ.id] === option;
+                    return (
+                      <TouchableOpacity 
+                        key={option}
+                        activeOpacity={0.7}
+                        style={[
+                          styles.optionButton,
+                          isSelected && styles.optionSelected
+                        ]}
+                        onPress={() => handleOptionSelect(option)}
+                      >
+                        <Text style={[
+                          styles.optionText,
+                          isSelected && styles.optionTextSelected
+                        ]}>{option}</Text>
+                        <View style={[styles.customRadio, isSelected && styles.customRadioSelected]}>
+                          {isSelected && <View style={styles.customRadioInner} />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Toque aqui para responder..."
+                    placeholderTextColor={colors.gray}
+                    multiline
+                    value={answers[currentQ.id] || ''}
+                    onChangeText={(text) => setAnswers({...answers, [currentQ.id]: text})}
+                  />
+                )}
+              </View>
+            </Animated.View>
           </ScrollView>
 
           <SafeAreaView style={styles.footer}>
@@ -151,26 +201,27 @@ const Questionario = ({ visible, onClose, onComplete }) => {
               onPress={handleBack}
               disabled={currentStep === 0}
             >
-              <Ionicons name="chevron-back" size={20} color={colors.gray} />
+              <Ionicons name="arrow-back" size={18} color={colors.gray} />
               <Text style={styles.navButtonText}>Anterior</Text>
             </TouchableOpacity>
 
-            {(currentQ.type === 'input' || currentStep === questions.length - 1) && (
-              <TouchableOpacity 
-                style={styles.mainButton}
-                onPress={handleNext}
-                disabled={!answers[currentQ.id]}
+            <TouchableOpacity 
+              style={styles.mainButton}
+              onPress={handleNext}
+              disabled={!isCurrentAnswered}
+            >
+              <LinearGradient
+                colors={isCurrentAnswered ? [colors.blue, '#4F46E5'] : ['#E2E8F0', '#CBD5E1']}
+                style={styles.mainButtonGradient}
               >
-                <LinearGradient
-                  colors={answers[currentQ.id] ? [colors.blue, '#4F46E5'] : ['#E2E8F0', '#CBD5E1']}
-                  style={styles.mainButtonGradient}
-                >
-                  <Text style={styles.mainButtonText}>
-                    {currentStep === questions.length - 1 ? 'Finalizar' : 'Avançar'}
-                  </Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+                <Text style={[styles.mainButtonText, !isCurrentAnswered && { color: colors.gray }]}>
+                  {currentStep === questions.length - 1 ? 'Finalizar' : 'Avançar'}
+                </Text>
+                {isCurrentAnswered && currentStep !== questions.length - 1 && (
+                  <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: 6 }} />
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
           </SafeAreaView>
         </View>
       </KeyboardAvoidingView>

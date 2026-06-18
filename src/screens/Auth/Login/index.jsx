@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { 
@@ -144,9 +143,14 @@ const LoginScreen = () => {
     try {
       const data = await authService.login(email, password);
 
+      // Persistindo os dados principais do login
       await AsyncStorage.setItem('@nima_token', data.token);
       await AsyncStorage.setItem('@nima_user_role', data.user.cargo);
       await AsyncStorage.setItem('@nima_remember_me', rememberMe ? 'true' : 'false');
+
+      // CORREÇÃO: Salvando os dados necessários para a HomeScreen atualizar dinamicamente
+      await AsyncStorage.setItem('@nima_user_name', data.user.nome || 'Usuário');
+      await AsyncStorage.setItem('@nima_profile_completed', data.user.perfilCompleto ? 'true' : 'false');
 
       if (rememberMe) {
         await AsyncStorage.setItem('@nima_email', email);
@@ -167,8 +171,8 @@ const LoginScreen = () => {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#05082b', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#FFF" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF8A75" />
       </View>
     );
   }
@@ -179,109 +183,107 @@ const LoginScreen = () => {
   });
 
   return (
-    <LinearGradient colors={['#05082b', '#0a1550', '#0d2680', '#1a3fae']} style={styles.container}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-            <View style={{ flex: 1, width: '100%' }}>
-              
-              <View style={styles.logoContainer}>
-                <Animated.View style={[styles.pawWrapper, { transform: [{ translateX: pawX }, { translateY: pawY }, { rotate: pawRotateDeg }] }]}>
-                  <Ionicons name="paw" size={width * 0.22} color="#FFFFFF" />
-                </Animated.View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
+          <View style={{ flex: 1, width: '100%' }}>
+            
+            <View style={styles.logoContainer}>
+              <Animated.View style={[styles.pawWrapper, { transform: [{ translateX: pawX }, { translateY: pawY }, { rotate: pawRotateDeg }] }]}>
+                <Ionicons name="paw" size={width * 0.22} color="#FF8A75" />
+              </Animated.View>
 
-                <Animated.View style={{ opacity: contentOpacity, flexDirection: 'row', alignItems: 'baseline', paddingTop: 15 }}>
-                  <Text style={styles.logoText}>N<Text style={{ fontWeight: 'normal' }}>ima</Text></Text>
-                  <View style={styles.dot} />
-                </Animated.View>
-              </View>
-
-              <Animated.View style={[styles.formContainer, { opacity: contentOpacity }]}>
-                <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  editable={!isLoading}
-                />
-
-                <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={styles.inputWithIcon}
-                    placeholder="Senha"
-                    placeholderTextColor="#9CA3AF"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    editable={!isLoading}
-                  />
-                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#9CA3AF" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.bottomInputRow}>
-                  <TouchableOpacity style={styles.rememberContainer} activeOpacity={0.7} onPress={() => setRememberMe(!rememberMe)}>
-                    <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                      {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
-                    </View>
-                    <Text style={styles.rememberText}>Lembrar-me</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleSimpleNavigation('ForgotPassword')}>
-                    <Text style={styles.forgotText}>Esqueceu a senha?</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={handleLogin} disabled={isLoading}>
-                  {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Entrar</Text>}
-                </TouchableOpacity>
-
-                <View style={styles.divider}>
-                  <View style={styles.line} /><Text style={styles.orText}>OU</Text><View style={styles.line} />
-                </View>
-
-                <TouchableOpacity style={styles.socialButton}>
-                  <Ionicons name="logo-google" size={20} color="#DB4437" />
-                  <Text style={styles.socialText}>Entrar com o Google</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.socialButton}>
-                  <Ionicons name="logo-facebook" size={20} color="#1877F2" />
-                  <Text style={styles.socialText}>Entrar com o Facebook</Text>
-                </TouchableOpacity>
-
-                <View style={styles.footerRow}>
-                  <Text style={styles.footerText}>Ainda não tem uma conta? </Text>
-                  <TouchableOpacity onPress={() => handleSimpleNavigation('Register')}>
-                    <Text style={styles.signupText}>Cadastre-se</Text>
-                  </TouchableOpacity>
-                </View>
+              <Animated.View style={[styles.logoTextWrapper, { opacity: contentOpacity }]}>
+                <Text style={styles.logoText}>N<Text style={{ fontWeight: 'normal' }}>ima</Text></Text>
+                <View style={styles.dot} />
               </Animated.View>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+
+            <Animated.View style={[styles.formContainer, { opacity: contentOpacity }]}>
+              <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                placeholderTextColor="#7F8C8D"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.inputWithIcon}
+                  placeholder="Senha"
+                  placeholderTextColor="#7F8C8D"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
+                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#5A6578" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.bottomInputRow}>
+                <TouchableOpacity style={styles.rememberContainer} activeOpacity={0.7} onPress={() => setRememberMe(!rememberMe)}>
+                  <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                    {rememberMe && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  </View>
+                  <Text style={styles.rememberText}>Lembrar-me</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleSimpleNavigation('ForgotPassword')}>
+                  <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={handleLogin} disabled={isLoading}>
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Entrar</Text>}
+              </TouchableOpacity>
+
+              <View style={styles.divider}>
+                <View style={styles.line} /><Text style={styles.orText}>OU</Text><View style={styles.line} />
+              </View>
+
+              <TouchableOpacity style={styles.socialButton}>
+                <Ionicons name="logo-google" size={20} color="#2D3748" />
+                <Text style={styles.socialText}>Entrar com o Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.socialButton}>
+                <Ionicons name="logo-facebook" size={20} color="#2D3748" />
+                <Text style={styles.socialText}>Entrar com o Facebook</Text>
+              </TouchableOpacity>
+
+              <View style={styles.footerRow}>
+                <Text style={styles.footerText}>Ainda não tem uma conta? </Text>
+                <TouchableOpacity onPress={() => handleSimpleNavigation('Register')}>
+                  <Text style={styles.signupText}>Cadastre-se</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {popupConfig.show && (
         <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
           <View style={[
             styles.popupContent, 
-            { borderLeftColor: popupConfig.type === 'success' ? '#4ADE80' : '#EF4444' }
+            { borderLeftColor: popupConfig.type === 'success' ? '#2ECC71' : '#E74C3C' }
           ]}>
             <Ionicons 
               name={popupConfig.type === 'success' ? "checkmark-circle" : "alert-circle"} 
               size={24} 
-              color={popupConfig.type === 'success' ? "#4ADE80" : "#EF4444"} 
+              color={popupConfig.type === 'success' ? "#2ECC71" : "#E74C3C"} 
             />
             <Text style={styles.popupText}>{popupConfig.message}</Text>
           </View>
         </Animated.View>
       )}
-    </LinearGradient>
+    </SafeAreaView>
   );
 };
 

@@ -15,15 +15,19 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 // Importando estilos e cores estruturados
 import { styles, colors } from './styles';
-
-import Navbar from '../../components/NavBar/navbar';
+import authService from '../../Auth/authService'; 
 import Questionario from '../../components/Questionario/Questionario';
+import Navbar from '../../components/NavBar/navbar';
 
 const { width: screenWidth } = Dimensions.get('window');
 const HAS_SEEN_TUTORIAL_KEY = '@nima:has_seen_tutorial';
+
+// Variável de controle na memória volátil para detectar recarregamento completo (F5)
+let isInitialAppLoad = true;
 
 // --- COMPONENTE DE TUTORIAL (ONBOARDING SLIDES) ---
 const TutorialTutorial = ({ visible, onClose, onFinish }) => {
@@ -68,7 +72,6 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
     },
   ];
 
-  // Controla a mudança via botão com animação fluida de slide
   const handleNext = () => {
     const nextIndex = currentSlide + 1;
     if (nextIndex < slides.length) {
@@ -81,14 +84,12 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
     }
   };
 
-  // Captura o movimento do scroll em tempo real para sincronizar o botão e os indicadores
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
     { 
       useNativeDriver: false,
       listener: (event) => {
         const offsetX = event.nativeEvent.contentOffset.x;
-        // Calcula o índice com base no deslocamento atual (arredondando para o mais próximo)
         const index = Math.round(offsetX / screenWidth);
         if (index !== currentSlide && index >= 0 && index < slides.length) {
           setCurrentSlide(index);
@@ -150,7 +151,6 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
         />
 
         <View style={styles.slideFooter}>
-          {/* Indicador de Bolinhas com a Patinha Animada */}
           <View style={styles.paginationDotsContainer}>
             <View style={styles.passiveDotsRow}>
               {slides.map((_, index) => (
@@ -189,8 +189,56 @@ const HomeScreen = ({ navigation }) => {
   const [isQuizVisible, setIsQuizVisible] = useState(false);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false); 
-  const [profileProgress, setProfileProgress] = useState({ hasPhoto: false, hasForm: false, hasDocs: false });
+  const [userName, setUserName] = useState('');
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [isFirstTimeTutorialVisible, setIsFirstTimeTutorialVisible] = useState(false);
+
+  // Carrega e atualiza dinamicamente as informações com validação estrita de persistência
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadUserData = async () => {
+        try {
+          const token = await AsyncStorage.getItem('@nima_token');
+          const rememberMe = await AsyncStorage.getItem('@nima_remember_me');
+          const fullName = await AsyncStorage.getItem('@nima_user_name'); 
+          const profileCompletedStatus = await AsyncStorage.getItem('@nima_profile_completed');
+
+          if (token) {
+            // Se o app acabou de sofrer um F5/Recarregamento E o usuário NÃO pediu para manter logado
+            if (isInitialAppLoad && rememberMe !== 'true') {
+              await AsyncStorage.removeItem('@nima_token');
+              await AsyncStorage.removeItem('@nima_user_role');
+              await AsyncStorage.removeItem('@nima_user_name');
+              await AsyncStorage.removeItem('@nima_profile_completed');
+              
+              setIsLoggedIn(false);
+              setUserName('');
+              setIsProfileComplete(false);
+              isInitialAppLoad = false; 
+              return;
+            }
+
+            // Fluxo normal: Mantém logado (seja vindo direto do LoginScreen ou com rememberMe ativado)
+            setIsLoggedIn(true);
+            setUserName(authService.getFirstName(fullName || ''));
+            setIsProfileComplete(profileCompletedStatus === 'true');
+          } else {
+            setIsLoggedIn(false);
+            setUserName('');
+            setIsProfileComplete(false);
+          }
+
+          // Após a primeira checagem de foco no ciclo de vida atual da memória, desativa o gatilho inicial
+          isInitialAppLoad = false;
+
+        } catch (error) {
+          console.error("Erro ao carregar dados do usuário na Home:", error);
+        }
+      };
+
+      loadUserData();
+    }, [])
+  );
 
   useEffect(() => {
     const checkTutorialStatus = async () => {
@@ -215,15 +263,16 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const completedSteps = Object.values(profileProgress).filter(Boolean).length;
-  const totalSteps = 3;
-  const progressPercent = (completedSteps / totalSteps) * 100;
-  const isProfileComplete = completedSteps === totalSteps;
-
   const handleCloseQuiz = () => { setIsQuizVisible(false); };
-  const handleCompleteQuiz = (data) => {
+  
+  const handleCompleteQuiz = async (data) => {
     setIsQuizVisible(false);
-    setProfileProgress(prev => ({ ...prev, hasForm: true }));
+    try {
+      await authService.completeProfile(data);
+      setIsProfileComplete(true);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const suggestions = [
@@ -260,7 +309,7 @@ const HomeScreen = ({ navigation }) => {
 
         <View style={styles.greetingSection}>
           <Text style={styles.greeting}>
-            {isLoggedIn ? "Olá, Pedro! 👋" : "Conheça o nima"}
+            {isLoggedIn ? `Olá, ${userName}! 👋` : "Conheça o nima"}
           </Text>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color={colors.textMuted} />
@@ -274,25 +323,28 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Card Dinâmico de Progresso */}
         {isLoggedIn && !isProfileComplete && (
           <TouchableOpacity 
             style={styles.progressCard}
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => setIsQuizVisible(true)}
+            activeOpacity={0.9}
           >
             <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Complete seu Perfil</Text>
-              <Text style={styles.progressValue}>{Math.round(progressPercent)}%</Text>
+              <Text style={styles.progressLabel}>Preencha seu perfil</Text>
+              <Text style={styles.progressValue}>Pendente</Text>
             </View>
             <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+              <View style={[styles.progressBarFill, { width: '33%' }]} />
             </View>
-            <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 8 }}>
-              Insira sua foto, responda ao formulário e envie os documentos.
+            <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 8, lineHeight: 18 }}>
+              Falta pouco! Complete seu formulário de afinidade para desbloquear recomendações exclusivas com a nossa IA.
             </Text>
           </TouchableOpacity>
         )}
 
-        {(!isLoggedIn || !isProfileComplete) && (
+        {/* Card de Boas-Vindas/Insights */}
+        {!isProfileComplete && (
           <View style={styles.smartInsightsCard}>
             <View style={styles.insightIconCircle}>
               <Ionicons name="sparkles-outline" size={26} color={colors.peach} />
@@ -303,8 +355,10 @@ const HomeScreen = ({ navigation }) => {
             <Text style={{ color: colors.textMuted, textAlign: 'center', fontSize: 13, paddingHorizontal: 10, marginBottom: 15, lineHeight: 18 }}>
               {!isLoggedIn 
                 ? "Explore a plataforma livremente. Ative sua conta para configurar o painel de afinidade e receber indicações personalizadas pela nossa IA." 
-                : "Seu painel definitivo está sendo preparado. Finalize o envio da documentação para habilitar matches em tempo real."}
+                : "Seu painel definitivo está sendo preparado. Responda ao questionário acima para habilitar matches e cálculos de sintonia em tempo real."}
             </Text>
+            
+            {/* O Botão de Criar conta reaparecerá perfeitamente aqui caso o F5 limpe a sessão */}
             {!isLoggedIn && (
               <TouchableOpacity 
                 style={{ backgroundColor: colors.peach, paddingVertical: 11, paddingHorizontal: 28, borderRadius: 20 }}
