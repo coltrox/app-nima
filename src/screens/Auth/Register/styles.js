@@ -1,7 +1,17 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
-const scale = (size) => (width / 375) * size;
+
+// Função de escala responsiva calibrada (Moderate Scale) com limites para evitar distorções
+const scale = (size, factor = 0.5) => {
+  const baseScale = (width / 375) * size;
+  // Aplica uma escala moderada para equilibrar a visualização entre celulares e tablets
+  const moderate = size + (baseScale - size) * factor;
+  // Define tetos máximos para inputs e botões não quebrarem em telas muito grandes
+  if (size === 58 || size === 60) return Math.min(moderate, 65);
+  if (size === 26) return Math.min(moderate, 34); // Título
+  return moderate;
+};
 
 export const styles = StyleSheet.create({
   container: {
@@ -23,32 +33,33 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginTop: height * 0.01,
-    marginLeft: width * 0.02,
+    marginTop: Platform.OS === 'ios' ? 10 : height * 0.015,
+    marginLeft: width * 0.04,
     zIndex: 10,
   },
   animatedContent: {
     flex: 1,
     paddingHorizontal: width * 0.08,
-    marginTop: height * 0.08,
-    zIndex: 5, // Aumentado para garantir foco no PC
+    marginTop: height * 0.04,
+    zIndex: 5,
   },
   headerContainer: {
-    marginTop: height * -0.03,
-    marginBottom: height * 0.04,
+    marginTop: height * 0.01,
+    marginBottom: height * 0.025,
   },
   titleLarge: {
     fontSize: scale(26),
     color: '#FFFFFF',
-    lineHeight: scale(38),
+    lineHeight: scale(36),
     fontWeight: '800',
   },
   form: {
-    gap: scale(15),
+    gap: scale(12),
+    width: '100%',
   },
   inputLarge: {
     backgroundColor: '#FFFFFF',
-    height: scale(60),
+    height: scale(58),
     borderRadius: 15,
     paddingHorizontal: 20,
     fontSize: scale(16),
@@ -59,11 +70,11 @@ export const styles = StyleSheet.create({
   },
   buttonDark: {
     backgroundColor: '#1E232C',
-    height: scale(60),
+    height: scale(58),
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: scale(20),
+    marginTop: scale(10),
   },
   buttonTextLarge: {
     color: '#FFFFFF',
@@ -73,7 +84,7 @@ export const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: height * 0.04,
+    marginVertical: height * 0.03,
   },
   line: {
     flex: 1,
@@ -89,7 +100,7 @@ export const styles = StyleSheet.create({
   socialRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: scale(20),
+    marginBottom: scale(15),
   },
   socialSquare: {
     width: '30%',
@@ -102,8 +113,10 @@ export const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
     marginTop: 'auto',
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingTop: 20,
+    paddingBottom: Platform.OS === 'ios' ? 35 : 25,
   },
   footerText: {
     color: '#FFFFFF',
@@ -114,34 +127,32 @@ export const styles = StyleSheet.create({
     fontSize: scale(15),
     fontWeight: '700',
   },
+  // POPUP UNIFICADA DO SISTEMA NIMA
   popupContainer: {
     position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
+    bottom: Platform.OS === 'ios' ? 60 : 40,
+    left: 20,
+    right: 20,
     zIndex: 999,
   },
   popupContent: {
-    backgroundColor: '#1E232C',
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: '#333',
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    borderLeftWidth: 5,
+    gap: 5,
   },
   popupText: {
-    color: '#FFF',
     marginLeft: 10,
+    color: '#000',
     fontSize: 14,
+    flex: 1,
   }
 });

@@ -31,7 +31,7 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [initialRoute, setInitialRoute] = useState('Login');
+  const [initialRoute, setInitialRoute] = useState('Home');
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -40,8 +40,7 @@ export default function App() {
         const role = await AsyncStorage.getItem('@nima_user_role');
         const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
 
-        // LÓGICA CORRIGIDA:
-        // Só redireciona automaticamente se houver token E a caixa estava marcada.
+        // Se houver token salvo e a opção de lembrar estava ativa, redireciona para a respectiva Dashboard
         if (token && wasRemembered === 'true') {
           if (role === 'admin') {
             setInitialRoute('AdminDashboard');
@@ -51,12 +50,11 @@ export default function App() {
             setInitialRoute('Home');
           }
         } else {
-          // Se não marcou para lembrar ou não tem token, a rota inicial SEMPRE será Login.
-          // Removido o multiRemove daqui para não bugar o login manual.
-          setInitialRoute('Login');
+          // Caso contrário, a tela inicial agora é a Home (onde agirá como visitante)
+          setInitialRoute('Home');
         }
       } catch (e) {
-        setInitialRoute('Login');
+        setInitialRoute('Home');
       } finally {
         setIsLoading(false);
       }
@@ -83,17 +81,17 @@ export default function App() {
           animation: 'fade_from_bottom', 
         }}
       >
+        {/* Telas de App / Dashboards */}
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+        <Stack.Screen name="OngDashboard" component={OngDashboard} />
+
         {/* Telas de Auth */}
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Register" component={Register} />
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
         <Stack.Screen name="VerifyCode" component={VerifyCode} />
         <Stack.Screen name="ResetPassword" component={ResetPassword} />
-
-        {/* Telas de App / Dashboards */}
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
-        <Stack.Screen name="OngDashboard" component={OngDashboard} />
         
         {/* Outras Rotas */}
         <Stack.Screen name="Match" component={Match} />

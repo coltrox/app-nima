@@ -10,28 +10,26 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
   ScrollView,
   ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import authService from '../authService';
 
 const { width, height } = Dimensions.get('window');
 
 export default function Register({ navigation }) {
-  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupMsg, setPopupMsg] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
+  // Configuração alinhada com o padrão Nima
+  const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current; 
@@ -51,43 +49,60 @@ export default function Register({ navigation }) {
     ]).start();
   }, []);
 
-  const triggerPopup = (message, success = false) => {
-    setPopupMsg(message);
-    setIsSuccess(success);
-    setShowPopup(true);
+  const triggerPopup = (message, type = 'success', callback = null) => {
+    setPopupConfig({ show: true, message, type });
 
     Animated.parallel([
       Animated.timing(popupFade, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.timing(popupSlide, { toValue: 0, duration: 300, useNativeDriver: true })
+      Animated.spring(popupSlide, { toValue: 0, friction: 8, useNativeDriver: true })
     ]).start();
 
     setTimeout(() => {
-      Animated.parallel([
-        Animated.timing(popupFade, { toValue: 0, duration: 300, useNativeDriver: true }),
-        Animated.timing(popupSlide, { toValue: 10, duration: 300, useNativeDriver: true })
-      ]).start(() => {
-        setShowPopup(false);
-        if (success) navigation.navigate('Login');
+      Animated.timing(popupFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setPopupConfig(prev => ({ ...prev, show: false }));
+        if (callback) callback();
       });
     }, 3000);
   };
 
   const handleRegister = async () => {
-    if (!username || !email || !password || !confirmPassword) {
-      triggerPopup('Por favor, preencha todos os campos.', false);
+    const nomeCompleto = fullName.trim();
+    const emailLimpo = email.trim();
+    const cpfLimpo = cpf.trim();
+    const pwr = password.trim();
+    const conf = confirmPassword.trim();
+
+    if (!nomeCompleto || !emailLimpo || !cpfLimpo || !pwr || !conf) {
+      triggerPopup('Por favor, preencha todos os campos.', 'error');
       return;
     }
-    if (password !== confirmPassword) {
-      triggerPopup('As senhas não coincidem.', false);
+
+    if (pwr !== conf) {
+      triggerPopup('As senhas não coincidem.', 'error');
+      return;
+    }
+
+    // Regra de validação: mínimo de 6 caracteres, contendo pelo menos uma letra e um número
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
+    if (!passwordRegex.test(pwr)) {
+      triggerPopup('A senha deve conter no mínimo 6 caracteres, incluindo letras e números.', 'error');
       return;
     }
 
     setIsLoading(true);
     try {
-      await authService.register({ username, email, password });
-      triggerPopup('Conta criada com sucesso!', true);
-    } catch (error) {
-      triggerPopup(String(error), false);
+      await authService.register({ 
+        nome: nomeCompleto, 
+        email: emailLimpo, 
+        cpf: cpfLimpo, 
+        password: pwr 
+      });
+      
+      triggerPopup('Conta criada com sucesso!', 'success', () => {
+        navigation.navigate('Login');
+      });
+    } catch (errorMessage) {
+      triggerPopup(String(errorMessage), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -105,10 +120,8 @@ export default function Register({ navigation }) {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* pointerEvents="box-none" permite clicar nos filhos mesmo com o Touchable em volta */}
             <View style={{ flex: 1 }} pointerEvents="box-none">
                 
-                {/* A PATA AGORA IGNORA CLIQUES E NÃO BLOQUEIA O FUNDO */}
                 <Animated.View 
                   pointerEvents="none" 
                   style={[styles.pawFixed, {
@@ -140,11 +153,10 @@ export default function Register({ navigation }) {
                   <View style={styles.form}>
                     <TextInput 
                       style={styles.inputLarge} 
-                      placeholder="Nome de Usuário" 
+                      placeholder="Nome Completo" 
                       placeholderTextColor="#9CA3AF" 
-                      autoCapitalize="none" 
-                      value={username}
-                      onChangeText={setUsername}
+                      value={fullName}
+                      onChangeText={setFullName}
                       editable={!isLoading}
                     />
                     <TextInput 
@@ -155,6 +167,16 @@ export default function Register({ navigation }) {
                       autoCapitalize="none" 
                       value={email}
                       onChangeText={setEmail}
+                      editable={!isLoading}
+                    />
+                    <TextInput 
+                      style={styles.inputLarge} 
+                      placeholder="CPF" 
+                      keyboardType="numeric"
+                      placeholderTextColor="#9CA3AF" 
+                      value={cpf}
+                      onChangeText={setCpf}
+                      maxLength={14}
                       editable={!isLoading}
                     />
                     <TextInput 
@@ -190,18 +212,6 @@ export default function Register({ navigation }) {
                     </TouchableOpacity>
                   </View>
 
-                  <View style={styles.dividerContainer}>
-                    <View style={styles.line} />
-                    <Text style={[styles.dividerText, { fontFamily: 'Nunito_600SemiBold' }]}>Ou registre com</Text>
-                    <View style={styles.line} />
-                  </View>
-
-                  <View style={styles.socialRow}>
-                    <TouchableOpacity style={styles.socialSquare} disabled={isLoading}><FontAwesome5 name="facebook-f" size={22} color="#1877F2" /></TouchableOpacity>
-                    <TouchableOpacity style={styles.socialSquare} disabled={isLoading}><FontAwesome5 name="google" size={22} color="#DB4437" /></TouchableOpacity>
-                    <TouchableOpacity style={styles.socialSquare} disabled={isLoading}><FontAwesome5 name="apple" size={22} color="black" /></TouchableOpacity>
-                  </View>
-
                   <View style={styles.footer}>
                     <Text style={[styles.footerText, { fontFamily: 'Nunito_400Regular' }]}>Lembrou da senha? </Text>
                     <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
@@ -214,15 +224,18 @@ export default function Register({ navigation }) {
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {showPopup && (
+      {popupConfig.show && (
         <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
-          <View style={styles.popupContent}>
+          <View style={[
+            styles.popupContent, 
+            { borderLeftColor: popupConfig.type === 'success' ? '#4ADE80' : '#EF4444' }
+          ]}>
             <Ionicons 
-              name={isSuccess ? "checkmark-circle" : "alert-circle"} 
+              name={popupConfig.type === 'success' ? "checkmark-circle" : "alert-circle"} 
               size={24} 
-              color={isSuccess ? "#4ADE80" : "#F87171"} 
+              color={popupConfig.type === 'success' ? "#4ADE80" : "#EF4444"} 
             />
-            <Text style={[styles.popupText, { fontFamily: 'Nunito_700Bold' }]}>{popupMsg}</Text>
+            <Text style={[styles.popupText, { fontFamily: 'Nunito_700Bold' }]}>{popupConfig.message}</Text>
           </View>
         </Animated.View>
       )}

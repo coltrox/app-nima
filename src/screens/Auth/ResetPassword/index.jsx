@@ -27,6 +27,8 @@ export default function ResetPassword() {
   
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [securePassword, setSecurePassword] = useState(true);
+  const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
 
@@ -77,6 +79,13 @@ export default function ResetPassword() {
       return;
     }
 
+    // REGEX CORRIGIDO: Aceita qualquer caractere (inclusive os especiais como *), exigindo ao menos uma letra e um número
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
+    if (!passwordRegex.test(pwr)) {
+      triggerPopup('A senha deve conter no mínimo 6 caracteres, incluindo letras e números.', 'error');
+      return;
+    }
+
     setIsLoading(true);
     try {
       await authService.resetPassword(email, code, pwr);
@@ -84,7 +93,8 @@ export default function ResetPassword() {
         navigation.navigate('Login');
       });
     } catch (error) {
-      triggerPopup(error, 'error');
+      const errorMsg = error?.response?.data?.message || error?.message || (typeof error === 'string' ? error : 'Erro ao alterar a senha.');
+      triggerPopup(errorMsg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -140,24 +150,41 @@ export default function ResetPassword() {
                 </Text>
 
                 <View style={styles.inputContainer} pointerEvents="box-none">
-                  <TextInput 
-                    style={[styles.inputLarge, { fontFamily: 'Nunito_400Regular' }]} 
-                    placeholder="Nova Senha" 
-                    placeholderTextColor="#9CA3AF" 
-                    secureTextEntry 
-                    value={password}
-                    onChangeText={setPassword}
-                    editable={!isLoading}
-                  />
-                  <TextInput 
-                    style={[styles.inputLarge, { fontFamily: 'Nunito_400Regular' }]} 
-                    placeholder="Confirmar nova Senha" 
-                    placeholderTextColor="#9CA3AF" 
-                    secureTextEntry 
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                    editable={!isLoading}
-                  />
+                  <View style={styles.passwordWrapper}>
+                    <TextInput 
+                      style={[styles.inputLargeWithIcon, { fontFamily: 'Nunito_400Regular' }]} 
+                      placeholder="Nova Senha" 
+                      placeholderTextColor="#9CA3AF" 
+                      secureTextEntry={securePassword} 
+                      value={password}
+                      onChangeText={setPassword}
+                      editable={!isLoading}
+                    />
+                    <TouchableOpacity 
+                      style={styles.eyeIcon} 
+                      onPress={() => setSecurePassword(!securePassword)}
+                    >
+                      <Ionicons name={securePassword ? "eye-off" : "eye"} size={22} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.passwordWrapper}>
+                    <TextInput 
+                      style={[styles.inputLargeWithIcon, { fontFamily: 'Nunito_400Regular' }]} 
+                      placeholder="Confirmar nova Senha" 
+                      placeholderTextColor="#9CA3AF" 
+                      secureTextEntry={secureConfirmPassword} 
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      editable={!isLoading}
+                    />
+                    <TouchableOpacity 
+                      style={styles.eyeIcon} 
+                      onPress={() => setSecureConfirmPassword(!secureConfirmPassword)}
+                    >
+                      <Ionicons name={secureConfirmPassword ? "eye-off" : "eye"} size={22} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  </View>
 
                   <TouchableOpacity 
                     style={styles.buttonLarge} 
@@ -176,7 +203,7 @@ export default function ResetPassword() {
 
               <View style={{ flex: 1 }} pointerEvents="none" />
 
-              <Animated.View style={[styles.footer, { opacity: fadeAnim, zIndex: 10 }]}>
+              <Animated.View style={[styles.footer, { opacity: fadeAnim, zIndex: 10, marginTop: 'auto' }]}>
                 <Text style={[styles.footerTextLarge, { fontFamily: 'Nunito_400Regular' }]}>Precisa de ajuda? </Text>
                 <TouchableOpacity disabled={isLoading}>
                   <Text style={[styles.loginLinkLarge, { fontFamily: 'Nunito_700Bold' }]}>Entre em Contato.</Text>
@@ -198,7 +225,7 @@ export default function ResetPassword() {
               size={24} 
               color={popupConfig.type === 'success' ? "#4ADE80" : "#EF4444"} 
             />
-            <Text style={styles.popupText}>{popupConfig.message}</Text>
+            <Text style={[styles.popupText, { fontFamily: 'Nunito_700Bold' }]}>{popupConfig.message}</Text>
           </View>
         </Animated.View>
       )}

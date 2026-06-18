@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     gap: 15,
     marginTop: height * 0.04,
-    zIndex: 999, // Eleva o container de inputs acima de tudo
+    zIndex: 999,
   },
   inputLarge: {
     backgroundColor: '#FFF',
@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     color: '#000',
-    // IMPORTANTE PARA WEB
     ...Platform.select({
       web: {
         outlineStyle: 'none',
@@ -87,6 +86,34 @@ const styles = StyleSheet.create({
     color: '#FFF',
     textDecorationLine: 'underline',
   },
+  popupContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    zIndex: 9999,
+  },
+  popupContent: {
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderLeftWidth: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
+    gap: 12,
+  },
+  popupText: {
+    color: '#1F2937',
+    fontSize: 15,
+    flex: 1,
+    lineHeight: 20,
+  }
 });
 
 export default styles;

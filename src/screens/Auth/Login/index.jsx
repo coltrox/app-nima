@@ -88,12 +88,12 @@ const LoginScreen = () => {
   }, []);
 
   useFocusEffect(
-    useCallback(() => {
+    ...[useCallback(() => {
       contentOpacity.setValue(1);
       pawX.setValue(0);
       pawY.setValue(0);
       pawRotate.setValue(-10);
-    }, [])
+    }, [])]
   );
 
   const triggerPopup = (message, type = 'success') => {
@@ -110,7 +110,6 @@ const LoginScreen = () => {
     }, 3000);
   };
 
-  // Função de navegação com animação de patinha para telas internas (Home/Dashboards)
   const handleAuthNavigation = (role) => {
     const targetX = width * 0.54; 
     const targetY = height * 0.05; 
@@ -131,7 +130,6 @@ const LoginScreen = () => {
     });
   };
 
-  // Função para navegação comum (Register/Forgot Password)
   const handleSimpleNavigation = (routeName) => {
     navigation.navigate(routeName);
   };
@@ -146,7 +144,6 @@ const LoginScreen = () => {
     try {
       const data = await authService.login(email, password);
 
-      // Salva os dados necessários para a sessão atual
       await AsyncStorage.setItem('@nima_token', data.token);
       await AsyncStorage.setItem('@nima_user_role', data.user.cargo);
       await AsyncStorage.setItem('@nima_remember_me', rememberMe ? 'true' : 'false');
@@ -159,7 +156,6 @@ const LoginScreen = () => {
         await AsyncStorage.removeItem('@nima_password');
       }
 
-      // Executa o redirecionamento baseado no cargo retornado pela API
       handleAuthNavigation(data.user.cargo);
 
     } catch (error) {
@@ -169,7 +165,7 @@ const LoginScreen = () => {
     }
   };
 
-  if (!fontsLoaded || (isLoading && !email)) {
+  if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: '#05082b', justifyContent: 'center' }}>
         <ActivityIndicator size="large" color="#FFF" />
@@ -205,7 +201,7 @@ const LoginScreen = () => {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="Email ou Nome de Usuário"
+                  placeholder="Email"
                   placeholderTextColor="#9CA3AF"
                   value={email}
                   onChangeText={setEmail}

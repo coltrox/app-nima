@@ -8,7 +8,7 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
-    paddingHorizontal: width * 0.05, // Reduzido para dar mais espaço aos 6 inputs
+    paddingHorizontal: width * 0.05, 
     paddingTop: 20,
     zIndex: 5,
   },
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   otpInput: {
-    width: width * 0.13, // Tamanho ideal para 6 dígitos lado a lado
+    width: width * 0.13, 
     height: width * 0.20,
     backgroundColor: '#FFF',
     borderRadius: 10,
@@ -97,6 +97,35 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textDecorationLine: 'underline',
   },
+  // ESTILOS DA POPUP DO SISTEMA NIMA
+  popupContainer: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    zIndex: 9999,
+  },
+  popupContent: {
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderLeftWidth: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 6,
+    gap: 12,
+  },
+  popupText: {
+    color: '#1F2937',
+    fontSize: 15,
+    flex: 1,
+    lineHeight: 20,
+  }
 });
 
 export default styles;

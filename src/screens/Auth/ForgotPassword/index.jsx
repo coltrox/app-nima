@@ -10,9 +10,7 @@ import {
   Easing,
   KeyboardAvoidingView,
   Platform,
-  Keyboard,
   ActivityIndicator,
-  Alert,
   ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +27,11 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Configuração da Popup Customizada do Sistema
+  const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
+  const popupFade = useRef(new Animated.Value(0)).current;
+  const popupSlide = useRef(new Animated.Value(10)).current;
+
   const PAW_X = width * 0.68;
   const PAW_Y = height * 0.12;
   const PAW_ROTATION = '25deg';
@@ -39,37 +42,52 @@ export default function ForgotPassword() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800, 
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 900, 
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(pawFadeAnim, {
-        toValue: 1,
-        duration: 1000, 
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(pawFadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
     ]).start();
   }, []);
 
+  const triggerPopup = (message, type = 'success', shouldNavigate = false) => {
+    setPopupConfig({ show: true, message, type });
+    
+    Animated.parallel([
+      Animated.timing(popupFade, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(popupSlide, { toValue: 0, friction: 8, useNativeDriver: true })
+    ]).start();
+
+    setTimeout(() => {
+      Animated.timing(popupFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+        setPopupConfig(prev => ({ ...prev, show: false }));
+        if (shouldNavigate) {
+          navigation.navigate('VerifyCode', { email: email.trim().toLowerCase() });
+        }
+      });
+    }, 3000);
+  };
+
   const handleSendCode = async () => {
-    if (!email) {
-      Alert.alert('Erro', 'Por favor, insira o seu e-mail.');
+    const sanitizedEmail = email.trim().toLowerCase();
+
+    if (!sanitizedEmail) {
+      triggerPopup('Por favor, insira o seu endereço de e-mail.', 'error');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(sanitizedEmail)) {
+      triggerPopup('Por favor, insira um formato de e-mail válido.', 'error');
       return;
     }
 
     setIsLoading(true);
     try {
-      await authService.forgotPassword(email);
-      navigation.navigate('VerifyCode', { email });
+      await authService.forgotPassword(sanitizedEmail);
+      triggerPopup('Código enviado com sucesso para a sua caixa de entrada!', 'success', true);
     } catch (error) {
-      Alert.alert('Erro', error);
+      console.error(`[FORGOT-PASSWORD] Erro: ${error}`);
+      // Fallback seguro OWASP
+      triggerPopup('O processo de recuperação foi iniciado. Verifique o seu e-mail.', 'success', true);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +99,6 @@ export default function ForgotPassword() {
       style={styles.container}
     >
       <SafeAreaView style={{ flex: 1 }}>
-        {/* Camada da Pata: zIndex negativo e pointerEvents none para não bloquear NADA */}
         <Animated.View 
           pointerEvents="none" 
           style={[styles.pawFixed, {
@@ -97,17 +114,15 @@ export default function ForgotPassword() {
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          pointerEvents="box-none"
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView 
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="always"
-            pointerEvents="box-none"
           >
-            <View style={styles.mainContent} pointerEvents="box-none">
+            <View style={styles.mainContent}>
               
-              <Animated.View style={{ opacity: fadeAnim, zIndex: 100 }}>
+              <Animated.View style={{ opacity: fadeAnim, zIndex: 100, alignSelf: 'flex-start' }}>
                 <TouchableOpacity 
                   style={styles.backBtn} 
                   onPress={() => navigation.goBack()}
@@ -134,7 +149,7 @@ export default function ForgotPassword() {
                   Não se preocupe! Isso acontece. Por favor, insira o e-mail da sua conta.
                 </Text>
 
-                <View style={styles.inputContainer} pointerEvents="box-none">
+                <View style={styles.inputContainer}>
                   <TextInput
                     style={[styles.inputLarge, { fontFamily: 'Nunito_400Regular' }]}
                     placeholder="Insira seu Email"
@@ -144,7 +159,7 @@ export default function ForgotPassword() {
                     value={email}
                     onChangeText={setEmail}
                     editable={!isLoading}
-                    autoFocus={Platform.OS === 'web'} // Ajuda na captura inicial do clique na web
+                    autoFocus={Platform.OS === 'web'}
                   />
                   
                   <TouchableOpacity
@@ -163,9 +178,7 @@ export default function ForgotPassword() {
                 </View>
               </Animated.View>
 
-              <View style={{ flex: 1 }} pointerEvents="none" /> 
-              
-              <Animated.View style={[styles.footer, { opacity: fadeAnim, zIndex: 100 }]}>
+              <Animated.View style={[styles.footer, { opacity: fadeAnim, zIndex: 100, marginTop: 'auto', paddingTop: 40 }]}>
                 <Text style={[styles.footerTextLarge, { fontFamily: 'Nunito_400Regular' }]}>
                   Lembrou da senha? 
                 </Text>
@@ -179,6 +192,22 @@ export default function ForgotPassword() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {popupConfig.show && (
+        <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
+          <View style={[
+            styles.popupContent, 
+            { borderLeftColor: popupConfig.type === 'success' ? '#4ADE80' : '#EF4444' }
+          ]}>
+            <Ionicons 
+              name={popupConfig.type === 'success' ? "checkmark-circle" : "alert-circle"} 
+              size={24} 
+              color={popupConfig.type === 'success' ? "#4ADE80" : "#EF4444"} 
+            />
+            <Text style={[styles.popupText, { fontFamily: 'Nunito_700Bold' }]}>{popupConfig.message}</Text>
+          </View>
+        </Animated.View>
+      )}
     </LinearGradient>
   );
 }

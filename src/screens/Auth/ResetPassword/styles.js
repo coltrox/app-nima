@@ -45,18 +45,31 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 20,
     zIndex: 100,
+    gap: 15,
   },
-  inputLarge: {
+  passwordWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFF',
-    height: 60,
     borderRadius: 12,
+    height: 60,
+    width: '100%',
+  },
+  inputLargeWithIcon: {
+    flex: 1,
+    height: '100%',
     paddingHorizontal: 20,
     fontSize: 16,
     color: '#000',
-    marginBottom: 15,
     ...Platform.select({
       web: { outlineStyle: 'none', cursor: 'text' },
     }),
+  },
+  eyeIcon: {
+    paddingHorizontal: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
   },
   buttonLarge: {
     backgroundColor: '#1E232C',
@@ -84,7 +97,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#00CFE8',
   },
-  // --- Estilização do Popup ---
   popupContainer: {
     position: 'absolute',
     bottom: 50,
@@ -104,11 +116,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     borderLeftWidth: 5,
+    gap: 5,
   },
   popupText: {
     marginLeft: 10,
     color: '#000',
     fontSize: 14,
+    flex: 1,
   }
 });
 
