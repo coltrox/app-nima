@@ -42,7 +42,6 @@ APP-NIMA/
 ├── node_modules/           # Dependências e pacotes Node.js instalados
 ├── src/                    # Código-fonte principal da aplicação
 │   ├── screens/            # Módulos e telas divididos por contextos
-│   │   ├── Admin\Dashboard # [REMOVIDO DO ESCOPO MOBILE - Não há tela admin no app]
 │   │   ├── App/            # Telas principais (Feed, Quiz, Meu Pet, Desaparecidos)
 │   │   ├── Auth/           # Fluxo de Login, Cadastro e Upload de Documentos
 │   │   ├── components/     # Componentes reaproveitáveis globais ou locais
