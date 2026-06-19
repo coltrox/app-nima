@@ -54,3 +54,52 @@ APP-NIMA/
 ├── index.js                # Arquivo de registro do componente raiz
 ├── package-lock.json       # Histórico de versões exatas das dependências
 └── package.json            # Manifesto do projeto e scripts de execução
+```
+
+🛠️ Tecnologias Utilizadas
+Framework Principal: React Native (Interface nativa multiplataforma)
+
+Ambiente de Desenvolvimento: Expo (Workflow gerenciado)
+
+Estilização: Linguagem de estilos padrão baseada em StyleSheet (Layout flexível e customizado)
+
+Comunicação com API: Axios / Fetch API para consumo do back-end
+
+🚀 Como Executar o Projeto Localmente
+Pré-requisitos
+Antes de iniciar, certifique-se de ter instalado em sua máquina:
+
+Node.js (versão LTS recomendada)
+
+Git
+
+Gerenciador de pacotes npm
+
+Aplicativo Expo Go instalado no seu smartphone (disponível na Google Play Store ou Apple App Store) para testes em dispositivo físico.
+
+Passo a Passo
+Clonar o repositório:
+
+Bash
+git clone [https://github.com/seu-usuario/app-nima.git](https://github.com/seu-usuario/app-nima.git)
+cd app-nima
+Instalar as dependências:
+
+Bash
+npm install
+Iniciar o servidor de desenvolvimento do Expo:
+
+Bash
+npx expo start
+Executar no dispositivo:
+
+Abra a câmera do seu celular (iOS) ou o aplicativo Expo Go (Android) e escaneie o QR Code gerado no terminal.
+
+Para testar em emuladores, pressione a para Android ou i para iOS diretamente no terminal (requer Android Studio / Xcode configurados).
+
+🔒 Conformidade e Requisitos Não Funcionais (RNF)
+Interface: Construída seguindo padrões de usabilidade para garantir excelente experiência visual nas plataformas suportadas.
+
+Compatibilidade: Homologado para dispositivos Android (versão 8.0 ou superior) e iOS (versão 13.0 ou superior).
+
+LGPD: O aplicativo requer o consentimento explícito do usuário final para a coleta, custódia e processamento de dados e documentos de identificação.
