@@ -14,7 +14,7 @@ Conforme o escopo do projeto, o aplicativo centraliza as seguintes funcionalidad
 * **Cadastro e Validação:** Criação de conta para adotantes com upload seguro de documentos de identificação (RG/CPF) e comprovante de residência em estrita conformidade com a LGPD.
 * **Segurança:** Login seguro com autenticação via token JWT e criptografia.
 
-### 2. Fluxo do Adotante (`src/screens/App` & `src/screens/screens`)
+### 2. Fluxo do Adotante (`src/screens/App`)
 * **Quiz Comportamental:** Questionário dinâmico de no mínimo 10 perguntas focado no estilo de vida e rotina do usuário.
 * **Feed Inteligente:** Listagem de animais disponíveis ordenados de forma decrescente pela pontuação de afinidade gerada pela IA.
 * **Solicitação de Adoção:** Envio do dossiê de candidatura diretamente para a ONG responsável pelo pet.
