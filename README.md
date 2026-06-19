@@ -43,7 +43,7 @@ APP-NIMA/
 ├── src/                    # Código-fonte principal da aplicação
 │   ├── screens/            # Módulos e telas divididos por contextos
 │   │   ├── App/            # Telas principais (Feed, Quiz, Meu Pet, Desaparecidos)
-│   │   ├── Auth/           # Fluxo de Login, Cadastro e Upload de Documentos
+│   │   ├── Auth/           # Fluxo de Login, Cadastro e recuperação de senha 
 │   │   ├── components/     # Componentes reaproveitáveis globais ou locais
 │   │   └── Ong/            # Mapa de ONGs, Doações (PIX), Voluntariado e Smart Tags
 │   └── theme/              # Configurações de cores, tipografia e estilos globais
