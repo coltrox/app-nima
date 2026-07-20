@@ -275,207 +275,182 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const suggestions = [
-    { id: 1, name: 'Luna', breed: 'Golden Retriever', image: 'https://images.unsplash.com/photo-1552053831-71594a27632d?q=80&w=300&h=400&auto=format&fit=crop' },
-    { id: 2, name: 'Thor', breed: 'Bulldog Francês', image: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=300&h=400&auto=format&fit=crop' },
-    { id: 3, name: 'Mel', breed: 'Vira-lata', image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?q=80&w=300&h=400&auto=format&fit=crop' },
+  // Dados mockados (visual-first). Serão ligados a /animais/recomendados depois.
+  const acoes = [
+    { key: 'adotar', label: 'Adotar', icon: 'paw-outline', active: true },
+    { key: 'apadrinhar', label: 'Apadrinhar', icon: 'heart-outline' },
+    { key: 'doar', label: 'Doar', icon: 'gift-outline' },
+    { key: 'ongs', label: 'ONGs', icon: 'business-outline' },
   ];
+  const match = {
+    nome: 'Bento',
+    idade: '2 anos',
+    km: '3,2 km',
+    compat: 92,
+    ong: 'ONG Patas Unidas',
+    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=800&auto=format&fit=crop',
+    tags: [
+      { icon: 'shield-checkmark-outline', label: 'Vacinado' },
+      { icon: 'paw-outline', label: 'Porte médio' },
+      { icon: 'heart-outline', label: 'Carinhoso' },
+    ],
+  };
+  const perfilPct = 40;
 
   return (
     <SafeAreaView style={styles.container}>
-      
-      <TutorialTutorial 
-        visible={isFirstTimeTutorialVisible} 
-        onClose={disableTutorialPermanently} 
-        onFinish={disableTutorialPermanently} 
+      <TutorialTutorial
+        visible={isFirstTimeTutorialVisible}
+        onClose={disableTutorialPermanently}
+        onFinish={disableTutorialPermanently}
       />
 
-      <ScrollView 
-        style={styles.scroll} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
-      >
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+        {/* Cabeçalho */}
         <View style={styles.header}>
-          <Text style={[styles.logo, { letterSpacing: -1 }]}>nima</Text>
+          <View style={styles.logoRow}>
+            <Ionicons name="paw" size={24} color={colors.peach} />
+            <Text style={styles.logo}>Nima</Text>
+          </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity>
-              <Ionicons name="notifications-outline" size={22} color={colors.textDark} />
+            <TouchableOpacity style={styles.bellWrap}>
+              <Ionicons name="notifications-outline" size={23} color={colors.textDark} />
+              <View style={styles.bellDot} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-              <Feather name="settings" size={20} color={colors.textDark} />
+            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+              <View style={styles.avatar} />
             </TouchableOpacity>
           </View>
         </View>
 
+        <TouchableOpacity style={styles.locationPill} activeOpacity={0.7}>
+          <Ionicons name="location-outline" size={15} color={colors.peach} />
+          <Text style={styles.locationText}>Campinas, SP</Text>
+          <Ionicons name="chevron-down" size={14} color={colors.textDark} />
+        </TouchableOpacity>
+
+        {/* Saudação */}
         <View style={styles.greetingSection}>
-          <Text style={styles.greeting}>
-            {isLoggedIn ? `Olá, ${userName}! 👋` : "Conheça o nima"}
-          </Text>
+          <Text style={styles.greeting}>Olá, {isLoggedIn && userName ? userName : 'tutor'}!</Text>
+          <Text style={styles.greetingSub}>Pronto para encontrar um novo amigo?</Text>
+        </View>
+
+        {/* Busca */}
+        <View style={styles.searchRow}>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color={colors.textMuted} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Buscar conexões..."
+              placeholder="Buscar cães, raças ou cidades"
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor={colors.textMuted}
             />
           </View>
+          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.85}>
+            <Ionicons name="options-outline" size={22} color="#fff" />
+          </TouchableOpacity>
         </View>
 
-        {/* Card Dinâmico de Progresso */}
-        {isLoggedIn && !isProfileComplete && (
-          <TouchableOpacity 
-            style={styles.progressCard}
-            onPress={() => setIsQuizVisible(true)}
-            activeOpacity={0.9}
-          >
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Preencha seu perfil</Text>
-              <Text style={styles.progressValue}>Pendente</Text>
+        {/* Ações rápidas */}
+        <View style={styles.quickRow}>
+          {acoes.map((a) => (
+            <TouchableOpacity key={a.key} style={[styles.quickCard, a.active && styles.quickCardActive]} activeOpacity={0.85}>
+              <Ionicons name={a.icon} size={26} color={a.active ? colors.peach : colors.textDark} />
+              <Text style={[styles.quickLabel, a.active && { color: colors.peach }]}>{a.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Banner de progresso do perfil → abre o questionário */}
+        {!isProfileComplete && (
+          <TouchableOpacity style={styles.profileBanner} activeOpacity={0.9} onPress={() => setIsQuizVisible(true)}>
+            <View style={styles.profileBannerIcon}>
+              <Ionicons name="paw" size={22} color="#fff" />
             </View>
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: '33%' }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileBannerText}>Seu perfil está {perfilPct}% completo</Text>
+              <View style={styles.profileBarBg}>
+                <View style={[styles.profileBarFill, { width: `${perfilPct}%` }]} />
+              </View>
             </View>
-            <Text style={{ fontSize: 13, color: colors.textMuted, marginTop: 8, lineHeight: 18 }}>
-              Falta pouco! Complete seu formulário de afinidade para desbloquear recomendações exclusivas com a nossa IA.
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+              <Text style={styles.profileContinue}>Continuar</Text>
+              <Ionicons name="chevron-forward" size={16} color="#fff" />
+            </View>
           </TouchableOpacity>
         )}
 
-        {/* Card de Boas-Vindas/Insights */}
-        {!isProfileComplete && (
-          <View style={styles.smartInsightsCard}>
-            <View style={styles.insightIconCircle}>
-              <Ionicons name="sparkles-outline" size={26} color={colors.peach} />
-            </View>
-            <Text style={[styles.cardTitle, { textAlign: 'center', marginBottom: 6 }]}>
-               {!isLoggedIn ? "Modo Descoberta Ativo" : "Perfil em Andamento"}
-            </Text>
-            <Text style={{ color: colors.textMuted, textAlign: 'center', fontSize: 13, paddingHorizontal: 10, marginBottom: 15, lineHeight: 18 }}>
-              {!isLoggedIn 
-                ? "Explore a plataforma livremente. Ative sua conta para configurar o painel de afinidade e receber indicações personalizadas pela nossa IA." 
-                : "Seu painel definitivo está sendo preparado. Responda ao questionário acima para habilitar matches e cálculos de sintonia em tempo real."}
-            </Text>
-            
-            {/* O Botão de Criar conta reaparecerá perfeitamente aqui caso o F5 limpe a sessão */}
-            {!isLoggedIn && (
-              <TouchableOpacity 
-                style={{ backgroundColor: colors.peach, paddingVertical: 11, paddingHorizontal: 28, borderRadius: 20 }}
-                onPress={() => navigation.navigate('Register')}
-              >
-                <Text style={{ color: colors.white, fontWeight: '700', fontSize: 14 }}>Criar Conta</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        {/* Seu melhor match */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Seu melhor match</Text>
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <Text style={styles.sectionLink}>Ver todos</Text>
+            <Ionicons name="chevron-forward" size={15} color={colors.peach} />
+          </TouchableOpacity>
+        </View>
 
-        {isProfileComplete && (
-          <View>
-            <View style={styles.toggleContainer}>
-              <TouchableOpacity 
-                onPress={() => setShowSmartInsights(!showSmartInsights)}
-                style={styles.toggleBtn}
-              >
-                <Text style={styles.toggleText}>
-                  {showSmartInsights ? "Ver Quiz de Perfil" : "Ver Analytics de Match"}
-                </Text>
-                <Ionicons name="swap-horizontal" size={16} color={colors.peach} />
-              </TouchableOpacity>
-            </View>
-
-            {showSmartInsights ? (
-              <View style={styles.smartInsightsCard}>
-                <Text style={styles.cardTitle}>Métricas Semanais</Text>
-                <View style={styles.metricsRow}>
-                  <View style={styles.metric}>
-                    <Text style={styles.metricNumber}>12</Text>
-                    <Text style={styles.metricLabel}>Matches</Text>
-                  </View>
-                  <View style={styles.metric}>
-                    <Text style={styles.metricNumber}>45</Text>
-                    <Text style={styles.metricLabel}>Visualizações</Text>
-                  </View>
-                  <View style={styles.metric}>
-                    <Text style={styles.metricNumber}>08</Text>
-                    <Text style={styles.metricLabel}>Interesses</Text>
-                  </View>
-                </View>
+        <View style={styles.matchCard}>
+          <View style={styles.matchImageWrap}>
+            <Image source={{ uri: match.image }} style={styles.matchImage} />
+            <View style={styles.compatBadge}>
+              <Ionicons name="heart" size={16} color={colors.peach} />
+              <View>
+                <Text style={styles.compatValue}>{match.compat}%</Text>
+                <Text style={styles.compatLabel}>compatível</Text>
               </View>
-            ) : (
-              <TouchableOpacity 
-                style={styles.ctaCard}
-                onPress={() => setIsQuizVisible(true)}
-              >
-                <View style={{ flex: 1, paddingRight: 10 }}>
-                  <Text style={styles.ctaTitle}>Questionário de Compatibilidade</Text>
-                  <Text style={styles.ctaText}>Aumente a precisão dos seus matches em até 80%</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={colors.white} />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        <Text style={styles.sectionTitle}>
-          {!isProfileComplete ? "Preview: Destaque do Dia" : "Destaque do Dia"}
-        </Text>
-        <TouchableOpacity 
-            style={styles.matchCard}
-            onPress={() => navigation.navigate('PetDetails')}
-        >
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=800&auto=format&fit=crop' }} 
-            style={styles.matchImage} 
-          />
-          <LinearGradient
-            colors={['transparent', 'rgba(74, 62, 61, 0.7)']}
-            style={styles.imageGradient}
-          />
-          <View style={styles.matchInfoOverlay}>
-            <View>
-              <Text style={styles.matchNameWhite}>Bento, 2 anos</Text>
-              <Text style={styles.matchBreedWhite}>Golden Retriever</Text>
             </View>
-            <View style={[styles.matchPercentBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Text style={styles.matchPercentText}>
-                {!isProfileComplete ? "Sintonia: --%" : "98% de Compatibilidade"}
-              </Text>
+            <TouchableOpacity style={styles.heartBtn}>
+              <Ionicons name="heart-outline" size={20} color={colors.textDark} />
+            </TouchableOpacity>
+            <View style={styles.ongBadge}>
+              <Ionicons name="shield-checkmark" size={14} color={colors.peach} />
+              <Text style={styles.ongBadgeText}>{match.ong}</Text>
+            </View>
+          </View>
+          <View style={styles.matchBody}>
+            <View style={styles.matchTopRow}>
+              <View>
+                <Text style={styles.matchName}>{match.nome}</Text>
+                <Text style={styles.matchMeta}>{match.idade}  ·  {match.km}</Text>
+              </View>
+              <TouchableOpacity style={styles.matchBtn} activeOpacity={0.85} onPress={() => navigation.navigate('PetDetails')}>
+                <Text style={styles.matchBtnText}>Conhecer {match.nome}</Text>
+                <Ionicons name="chevron-forward" size={15} color="#fff" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.tagRow}>
+              {match.tags.map((t) => (
+                <View key={t.label} style={styles.tag}>
+                  <Ionicons name={t.icon} size={14} color={colors.textMuted} />
+                  <Text style={styles.tagText}>{t.label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Campanha */}
+        <TouchableOpacity style={styles.campaignCard} activeOpacity={0.9} onPress={() => navigation.navigate('Donation')}>
+          <View style={styles.campaignIcon}>
+            <Ionicons name="heart" size={28} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.campaignTitle}>Ajude uma nova história</Text>
+            <Text style={styles.campaignText}>A campanha de ração está em 68% da meta.</Text>
+            <View style={styles.campaignBarBg}>
+              <View style={[styles.campaignBarFill, { width: '68%' }]} />
+            </View>
+            <View style={styles.campaignBtn}>
+              <Text style={styles.campaignBtnText}>Apoiar agora</Text>
             </View>
           </View>
         </TouchableOpacity>
-
-        <Text style={styles.sectionTitle}>
-            {!isProfileComplete ? "Preview: Sugestões de Match" : "Recomendações Especiais"}
-        </Text>
-        <FlatList
-          horizontal
-          data={suggestions}
-          renderItem={({ item }) => (
-            <TouchableOpacity 
-                style={styles.petSuggestionCard}
-                onPress={() => navigation.navigate('PetDetails')}
-            >
-              <Image source={{ uri: item.image }} style={styles.petSuggestionImage} />
-              <Text style={styles.petName}>{item.name}</Text>
-              <Text style={styles.petBreed}>{item.breed}</Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id.toString()}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.suggestionsList}
-        />
-        
       </ScrollView>
 
-      <Questionario 
-        visible={isQuizVisible} 
-        onClose={handleCloseQuiz}
-        onComplete={handleCompleteQuiz}
-      />
+      <Questionario visible={isQuizVisible} onClose={handleCloseQuiz} onComplete={handleCompleteQuiz} />
 
       <Navbar navigation={navigation} currentRoute="Home" />
-      
     </SafeAreaView>
   );
 };
