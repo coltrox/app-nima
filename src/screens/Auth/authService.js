@@ -1,7 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL as BASE } from '../../config/api';
 
-const API_URL = 'http://localhost:3000/api/auth';
+const API_URL = `${BASE}/auth`;
 
 /**
  * Função interna baseada na fórmula do Módulo 11 para validação real de CPF.
