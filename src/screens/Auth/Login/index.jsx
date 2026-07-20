@@ -256,12 +256,13 @@ const LoginScreen = () => {
                 <View style={styles.line} /><Text style={styles.orText}>OU</Text><View style={styles.line} />
               </View>
 
-              <TouchableOpacity style={styles.socialButton}>
+              {/* Login social ainda não tem OAuth no backend — avisa "em breve". */}
+              <TouchableOpacity style={styles.socialButton} onPress={() => triggerPopup('Login com Google chega em breve!', 'success')}>
                 <Ionicons name="logo-google" size={20} color="#2D3748" />
                 <Text style={styles.socialText}>Entrar com o Google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton}>
+              <TouchableOpacity style={styles.socialButton} onPress={() => triggerPopup('Login com Facebook chega em breve!', 'success')}>
                 <Ionicons name="logo-facebook" size={20} color="#2D3748" />
                 <Text style={styles.socialText}>Entrar com o Facebook</Text>
               </TouchableOpacity>

@@ -6,89 +6,69 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Animated,
-  Dimensions,
   Easing,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import styles from './styles';
 import authService from '../authService';
-
-const { width, height } = Dimensions.get('window');
+import { BRAND } from '../../../theme';
 
 export default function VerifyCode() {
   const navigation = useNavigation();
   const route = useRoute();
-  
+
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const inputs = useRef([]);
 
   const email = route.params?.email;
 
-  // Configuração da Popup Padrão do Sistema
   const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
   const popupFade = useRef(new Animated.Value(0)).current;
   const popupSlide = useRef(new Animated.Value(10)).current;
-
-  const PAW_X = width * 0.68;
-  const PAW_Y = height * 0.12;
-  const PAW_ROTATION = '25deg';
-
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const pawFadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(pawFadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
     ]).start();
   }, []);
 
   const triggerPopup = (message, type = 'success') => {
     setPopupConfig({ show: true, message, type });
-    
     Animated.parallel([
       Animated.timing(popupFade, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.spring(popupSlide, { toValue: 0, friction: 8, useNativeDriver: true })
+      Animated.spring(popupSlide, { toValue: 0, friction: 8, useNativeDriver: true }),
     ]).start();
-
     setTimeout(() => {
       Animated.timing(popupFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-        setPopupConfig(prev => ({ ...prev, show: false }));
+        setPopupConfig((prev) => ({ ...prev, show: false }));
       });
     }, 3500);
   };
 
   const handleCodeChange = (text, index) => {
-    // Permite que o usuário cole o código completo de 6 dígitos no primeiro input
+    // Cola o código completo no primeiro campo
     if (text.length > 1) {
-      const cleanedText = text.replace(/[^0-9]/g, '').slice(0, 6);
+      const cleaned = text.replace(/[^0-9]/g, '').slice(0, 6);
       const newCode = [...code];
-      for (let i = 0; i < 6; i++) {
-        newCode[i] = cleanedText[i] || '';
-      }
+      for (let i = 0; i < 6; i++) newCode[i] = cleaned[i] || '';
       setCode(newCode);
-      
-      const targetIndex = cleanedText.length === 6 ? 5 : cleanedText.length;
-      inputs.current[targetIndex]?.focus();
+      const target = cleaned.length === 6 ? 5 : cleaned.length;
+      inputs.current[target]?.focus();
       return;
     }
-
     const newCode = [...code];
     newCode[index] = text;
     setCode(newCode);
-
-    if (text !== '' && index < 5) {
-      inputs.current[index + 1].focus();
-    }
+    if (text !== '' && index < 5) inputs.current[index + 1]?.focus();
   };
 
   const handleKeyPress = (e, index) => {
@@ -96,18 +76,16 @@ export default function VerifyCode() {
       const newCode = [...code];
       newCode[index - 1] = '';
       setCode(newCode);
-      inputs.current[index - 1].focus();
+      inputs.current[index - 1]?.focus();
     }
   };
 
   const handleVerify = async () => {
     const verificationCode = code.join('');
-    
     if (verificationCode.length < 6) {
       triggerPopup('Por favor, insira o código de 6 dígitos completo.', 'error');
       return;
     }
-
     setIsLoading(true);
     try {
       await authService.verifyCode(email, verificationCode);
@@ -132,112 +110,80 @@ export default function VerifyCode() {
   };
 
   return (
-    <LinearGradient colors={['#05082b', '#0a1550', '#0d2680', '#1a3fae']} style={styles.container}>
-      <SafeAreaView style={{ flex: 1 }}>
-        <Animated.View 
-          pointerEvents="none"
-          style={[styles.pawFixed, {
-            top: PAW_Y,
-            left: PAW_X,
-            opacity: pawFadeAnim,
-            transform: [{ rotate: PAW_ROTATION }],
-            zIndex: -1
-          }]}
-        >
-          <Ionicons name="paw" size={width * 0.22} color="#FFFFFF" />
-        </Animated.View>
-
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView 
-            contentContainerStyle={{ flexGrow: 1 }}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="always"
-          >
-            <View style={styles.mainContent}>
-              <Animated.View style={{ opacity: fadeAnim, zIndex: 10, alignSelf: 'flex-start' }}>
-                <TouchableOpacity 
-                  style={styles.backBtn} 
-                  onPress={() => navigation.goBack()}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="chevron-back" size={24} color="#000" />
-                </TouchableOpacity>
-              </Animated.View>
-
-              <Animated.View style={{ 
-                opacity: fadeAnim, 
-                transform: [{ translateY: slideAnim }],
-                marginTop: height * 0.05,
-                zIndex: 20
-              }}>
-                <Text style={[styles.titleLarge, { fontFamily: 'Nunito_800ExtraBold' }]}>Verificação</Text>
-                
-                <Text style={[styles.descriptionLarge, { fontFamily: 'Nunito_400Regular' }]}>
-                  Insira o código de 6 dígitos enviado para o seu e-mail.
-                </Text>
-
-                <View style={styles.otpContainer}>
-                  {code.map((digit, index) => (
-                    <TextInput
-                      key={index}
-                      ref={(el) => (inputs.current[index] = el)}
-                      style={[styles.otpInput, { fontFamily: 'Nunito_700Bold' }]}
-                      maxLength={Platform.OS === 'web' ? 6 : 1}
-                      keyboardType="number-pad"
-                      onChangeText={(text) => handleCodeChange(text, index)}
-                      onKeyPress={(e) => handleKeyPress(e, index)}
-                      value={digit}
-                      editable={!isLoading}
-                    />
-                  ))}
-                </View>
-
-                <TouchableOpacity 
-                  style={styles.buttonVerify} 
-                  activeOpacity={0.8}
-                  onPress={handleVerify}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <Text style={[styles.buttonTextVerify, { fontFamily: 'Nunito_700Bold' }]}>Verificar</Text>
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
-
-              <Animated.View style={[styles.footer, { opacity: fadeAnim, marginTop: 'auto', paddingBottom: 20, zIndex: 10 }]}>
-                <Text style={[styles.footerTextLarge, { fontFamily: 'Nunito_400Regular' }]}>
-                  Não recebeu? 
-                </Text>
-                <TouchableOpacity onPress={handleResendCode} disabled={isLoading}>
-                  <Text style={[styles.resendLink, { fontFamily: 'Nunito_700Bold' }]}> Reenvie.</Text>
-                </TouchableOpacity>
-              </Animated.View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator={false}>
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} disabled={isLoading}>
+              <Ionicons name="chevron-back" size={22} color={BRAND.blue} />
+            </TouchableOpacity>
+            <View style={styles.logoRow}>
+              <Ionicons name="paw" size={22} color={BRAND.blue} />
+              <Text style={styles.logoText}>Nima</Text>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+            <Text style={styles.stepLabel}>Etapa 2 de 3</Text>
+          </View>
 
-      {/* Componente de Popup do Sistema */}
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            <View style={styles.illustration}>
+              <Ionicons name="shield-checkmark-outline" size={52} color={BRAND.blue} />
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.title}>Verificação</Text>
+              <Text style={styles.description}>
+                Insira o código de 6 dígitos enviado para{' '}
+                <Text style={styles.emailHint}>{email || 'seu e-mail'}</Text>.
+              </Text>
+
+              <View style={styles.otpContainer}>
+                {code.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(el) => (inputs.current[index] = el)}
+                    style={[styles.otpInput, digit !== '' && styles.otpInputFilled]}
+                    maxLength={Platform.OS === 'web' ? 6 : 1}
+                    keyboardType="number-pad"
+                    onChangeText={(text) => handleCodeChange(text, index)}
+                    onKeyPress={(e) => handleKeyPress(e, index)}
+                    value={digit}
+                    editable={!isLoading}
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={handleVerify} disabled={isLoading}>
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Verificar  →</Text>}
+              </TouchableOpacity>
+
+              <View style={styles.expireNote}>
+                <Ionicons name="time-outline" size={14} color={BRAND.inkSoft} />
+                <Text style={styles.expireNoteText}>O código expira em 10 minutos.</Text>
+              </View>
+            </View>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Não recebeu?</Text>
+              <TouchableOpacity onPress={handleResendCode} disabled={isLoading}>
+                <Text style={styles.resendLink}> Reenviar código</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
       {popupConfig.show && (
         <Animated.View style={[styles.popupContainer, { opacity: popupFade, transform: [{ translateY: popupSlide }] }]}>
-          <View style={[
-            styles.popupContent, 
-            { borderLeftColor: popupConfig.type === 'success' ? '#4ADE80' : '#EF4444' }
-          ]}>
-            <Ionicons 
-              name={popupConfig.type === 'success' ? "checkmark-circle" : "alert-circle"} 
-              size={24} 
-              color={popupConfig.type === 'success' ? '#4ADE80' : '#EF4444'} 
+          <View style={[styles.popupContent, { borderLeftColor: popupConfig.type === 'success' ? '#2ECC71' : '#E74C3C' }]}>
+            <Ionicons
+              name={popupConfig.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+              size={24}
+              color={popupConfig.type === 'success' ? '#2ECC71' : '#E74C3C'}
             />
-            <Text style={[styles.popupText, { fontFamily: 'Nunito_700Bold' }]}>{popupConfig.message}</Text>
+            <Text style={[styles.popupText, { fontFamily: 'Nunito_600SemiBold' }]}>{popupConfig.message}</Text>
           </View>
         </Animated.View>
       )}
-    </LinearGradient>
+    </SafeAreaView>
   );
 }
