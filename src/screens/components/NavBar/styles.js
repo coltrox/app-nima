@@ -1,45 +1,45 @@
-import { StyleSheet, Platform, Dimensions } from 'react-native';
+import { StyleSheet, Platform } from 'react-native';
+import { BRAND } from '../../../theme';
 
-const { width } = Dimensions.get('window');
-
+// Cores da barra alinhadas à marca (azul ativo, cinza inativo).
 export const colors = {
-  navy: '#05082B',
-  blue: '#1D5CFF',
-  gray: '#8E8E93',
-  white: '#FFFFFF',
-  border: '#E5E5EA',
+  navy: BRAND.navy,
+  blue: BRAND.blue,
+  gray: '#9AA6B2',
+  white: BRAND.card,
+  border: BRAND.border,
 };
 
 export const styles = StyleSheet.create({
   navbar: {
     position: 'absolute',
-    bottom: 25, // Mantendo o estilo flutuante que você tinha
-    left: width * 0.06,
-    right: width * 0.06,
-    height: 70,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 14,
     backgroundColor: colors.white,
-    borderRadius: 25,
-    // --- AS DUAS LINHAS ABAIXO SÃO A CHAVE ---
-    flexDirection: 'row', 
-    width: width * 0.88, // Garante que ela ocupe o espaço correto
-    // -----------------------------------------
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
     justifyContent: 'space-around',
     alignItems: 'center',
-    elevation: 10,
+    elevation: 12,
     shadowColor: colors.navy,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    zIndex: 1000, // Garante que fique por cima de tudo
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    zIndex: 1000,
   },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1, // Faz cada item ocupar o mesmo espaço na horizontal
+    flex: 1,
+    gap: 3,
   },
   navText: {
-    fontSize: 10,
-    fontWeight: '600',
-    marginTop: 4,
-  }
+    fontSize: 11,
+    fontFamily: 'Nunito_700Bold',
+    marginTop: 2,
+  },
 });
