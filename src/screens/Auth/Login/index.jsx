@@ -25,6 +25,7 @@ import {
 
 import styles from './styles';
 import authService from '../authService';
+import { BRAND } from '../../../theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -59,7 +60,8 @@ const LoginScreen = () => {
         const userRole = await AsyncStorage.getItem('@nima_user_role');
         const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
         const savedEmail = await AsyncStorage.getItem('@nima_email');
-        const savedPassword = await AsyncStorage.getItem('@nima_password');
+        // Migração: versões antigas guardavam a senha em texto puro. Apaga se existir.
+        await AsyncStorage.removeItem('@nima_password');
 
         if (userToken && wasRemembered === 'true') {
           if (userRole === 'admin') {
@@ -74,7 +76,6 @@ const LoginScreen = () => {
 
         if (savedEmail) {
           setEmail(savedEmail);
-          setPassword(savedPassword || '');
           setRememberMe(true);
         }
       } catch (e) {
@@ -152,12 +153,12 @@ const LoginScreen = () => {
       await AsyncStorage.setItem('@nima_user_name', data.user.nome || 'Usuário');
       await AsyncStorage.setItem('@nima_profile_completed', data.user.perfilCompleto ? 'true' : 'false');
 
+      // "Lembrar-me" guarda só o e-mail — senha NUNCA vai pro AsyncStorage
+      // (texto puro, legível por qualquer um com acesso ao aparelho).
       if (rememberMe) {
         await AsyncStorage.setItem('@nima_email', email);
-        await AsyncStorage.setItem('@nima_password', password);
       } else {
         await AsyncStorage.removeItem('@nima_email');
-        await AsyncStorage.removeItem('@nima_password');
       }
 
       handleAuthNavigation(data.user.cargo);
@@ -172,7 +173,7 @@ const LoginScreen = () => {
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FF8A75" />
+        <ActivityIndicator size="large" color={BRAND.blue} />
       </View>
     );
   }
@@ -190,7 +191,7 @@ const LoginScreen = () => {
             
             <View style={styles.logoContainer}>
               <Animated.View style={[styles.pawWrapper, { transform: [{ translateX: pawX }, { translateY: pawY }, { rotate: pawRotateDeg }] }]}>
-                <Ionicons name="paw" size={width * 0.22} color="#FF8A75" />
+                <Ionicons name="paw" size={width * 0.22} color={BRAND.blue} />
               </Animated.View>
 
               <Animated.View style={[styles.logoTextWrapper, { opacity: contentOpacity }]}>
@@ -201,6 +202,9 @@ const LoginScreen = () => {
 
             <Animated.View style={[styles.formContainer, { opacity: contentOpacity }]}>
               <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
+              <Text style={[styles.rememberText, { textAlign: 'center', marginTop: -12, marginBottom: 8 }]}>
+                Gerencie suas contas e suas preferências.
+              </Text>
 
               <TextInput
                 style={styles.input}
@@ -240,8 +244,13 @@ const LoginScreen = () => {
               </View>
 
               <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={handleLogin} disabled={isLoading}>
-                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Entrar</Text>}
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Entrar  →</Text>}
               </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="shield-checkmark-outline" size={14} color={BRAND.inkSoft} />
+                <Text style={styles.footerText}>Seus dados estão protegidos.</Text>
+              </View>
 
               <View style={styles.divider}>
                 <View style={styles.line} /><Text style={styles.orText}>OU</Text><View style={styles.line} />

@@ -3,13 +3,16 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 const { width, height } = Dimensions.get('window');
 const logoFontSize = width * 0.18;
 
+import { BRAND } from '../../../theme';
+
+// Paleta da marca (mesma da landing/painel web) — ver src/theme BRAND.
 const colors = {
-  bgWarm: '#F0F2F5',        // Cinza médio-claro confortável
-  textDark: '#2C3E50',      
-  textMuted: '#5A6578',     
-  peach: '#FF8A75',         
-  white: '#FFFFFF',
-  border: '#DCDFE4'         
+  bgWarm: BRAND.bg,         // creme de fundo do design
+  textDark: BRAND.ink,      // azul-marinho
+  textMuted: BRAND.inkSoft,
+  primary: BRAND.blue,      // azul primário (botões, links, logo)
+  white: BRAND.card,
+  border: BRAND.border
 };
 
 const styles = StyleSheet.create({
@@ -59,7 +62,7 @@ const styles = StyleSheet.create({
     width: width * 0.040,
     height: width * 0.040,
     borderRadius: 10,
-    backgroundColor: colors.peach,
+    backgroundColor: colors.primary,
     top: Platform.OS === 'ios' ? '34%' : '29%', 
     left: "31.2%",
   },
@@ -145,14 +148,14 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: '#B0B8C4',
+    borderColor: '#B9C2CE',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
   },
   checkboxChecked: {
-    backgroundColor: colors.peach,
-    borderColor: colors.peach,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   rememberText: {
     color: colors.textMuted,
@@ -160,19 +163,19 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_600SemiBold',
   },
   forgotText: {
-    color: colors.peach,
+    color: colors.primary,
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
   },
   loginButton: {
-    backgroundColor: colors.peach,
+    backgroundColor: colors.primary,
     height: 58,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
     elevation: 2,
-    shadowColor: colors.peach,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.15,
     shadowRadius: 5,
@@ -228,7 +231,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_400Regular',
   },
   signupText: {
-    color: colors.peach,
+    color: colors.primary,
     fontSize: 14,
     fontFamily: 'Nunito_700Bold',
   },
