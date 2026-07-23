@@ -21,6 +21,7 @@ import authService from '../../Auth/authService';
 import Questionario from '../../components/Questionario/Questionario';
 import Navbar from '../../components/NavBar/navbar';
 import Logo from '../../components/Logo';
+import Campo from '../../components/Campo';
 import { Carregando, Erro, Vazio, Aviso } from '../../components/Estado';
 import useCarregar from '../../../hooks/useCarregar';
 import animalService, { primeiraFoto } from '../../../services/animalService';
@@ -424,16 +425,17 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.searchRow}>
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={20} color={colors.textMuted} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar por nome, raça ou porte"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor={colors.textMuted}
-            />
-          </View>
+          {/* Campo padronizado: antes o ícone ficava por cima da área de
+              digitação e o input tinha altura menor que o alvo de toque. */}
+          <Campo
+            icone="search"
+            placeholder="Buscar por nome, raça ou porte"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+            returnKeyType="search"
+            containerStyle={{ flex: 1 }}
+          />
           <TouchableOpacity style={styles.filterBtn} activeOpacity={0.85} onPress={() => navigation.navigate('Match')}>
             <Ionicons name="grid-outline" size={22} color="#fff" />
           </TouchableOpacity>

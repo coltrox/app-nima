@@ -1,8 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, SafeAreaView, StatusBar } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import Navbar from '../../components/NavBar/navbar';
 import Logo from '../../components/Logo';
+import Campo from '../../components/Campo';
+import favoritos from '../../../services/favoritos';
 import { Carregando, Erro, Vazio, Aviso } from '../../components/Estado';
 import { BRAND } from '../../../theme';
 import t, { PAD } from '../../../theme/telaStyles';
@@ -25,6 +28,22 @@ const MatchScreen = ({ navigation }) => {
   const { dados, carregando, erro, recarregar } = useCarregar(() => animalService.feed(), {
     inicial: { lista: [], personalizado: false, aviso: null },
   });
+
+  // Favoritos moram no aparelho (não há tabela no backend). Recarrega ao voltar
+  // o foco porque o coração também pode ser alterado na ficha do pet.
+  const [favIds, setFavIds] = useState([]);
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      favoritos.listar().then((ids) => { if (vivo) setFavIds(ids); });
+      return () => { vivo = false; };
+    }, [])
+  );
+
+  const alternarFavorito = async (id) => {
+    await favoritos.alternar(id);
+    setFavIds(await favoritos.listar());
+  };
 
   const { lista, personalizado, aviso } = dados || { lista: [], personalizado: false, aviso: null };
 
@@ -59,21 +78,15 @@ const MatchScreen = ({ navigation }) => {
             : 'Todos os animais cadastrados pelas ONGs parceiras.'}
         </Text>
 
-        <View style={t.buscaRow}>
-          <Ionicons name="search" size={19} color={BRAND.inkSoft} />
-          <TextInput
-            style={t.buscaInput}
-            placeholder="Nome, raça, porte ou temperamento"
-            placeholderTextColor={BRAND.inkSoft}
-            value={busca}
-            onChangeText={setBusca}
-          />
-          {busca ? (
-            <TouchableOpacity onPress={() => setBusca('')}>
-              <Ionicons name="close-circle" size={19} color={BRAND.inkSoft} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        <Campo
+          icone="search"
+          placeholder="Nome, raça, porte ou temperamento"
+          value={busca}
+          onChangeText={setBusca}
+          autoCorrect={false}
+          returnKeyType="search"
+          containerStyle={{ marginHorizontal: PAD, marginTop: 14 }}
+        />
 
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: PAD, marginTop: 12 }}>
           {FILTROS.map((f) => {
@@ -130,6 +143,23 @@ const MatchScreen = ({ navigation }) => {
                         <Text style={[t.badgeTexto, t.badgeAzulTexto]}>{Math.round(a.compatibilidade)}%</Text>
                       </View>
                     )}
+
+                    <TouchableOpacity
+                      style={{
+                        position: 'absolute', top: 8, right: 8,
+                        width: 34, height: 34, borderRadius: 17,
+                        backgroundColor: 'rgba(255,255,255,0.94)',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      onPress={() => alternarFavorito(a.id)}
+                    >
+                      <Ionicons
+                        name={favIds.includes(String(a.id)) ? 'heart' : 'heart-outline'}
+                        size={18}
+                        color={favIds.includes(String(a.id)) ? BRAND.danger : BRAND.ink}
+                      />
+                    </TouchableOpacity>
                   </View>
                   <View style={t.petCorpo}>
                     <Text style={t.petNome} numberOfLines={1}>{a.nome}</Text>
