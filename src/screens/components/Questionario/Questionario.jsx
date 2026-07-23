@@ -155,7 +155,7 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
   const faltam = ETAPAS.length - etapa - 1;
 
   // ---- Trilha de 5 etapas ----
-  const Trilha = () => (
+  const trilha = () => (
     <View style={styles.trilha}>
       {ETAPAS.map((e, i) => {
         const concluida = respostas[e.id] !== undefined && respostas[e.id] !== '' && i < etapa;
@@ -195,7 +195,7 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
   );
 
   // ---- Opções em cartão (3 por linha) ----
-  const Opcoes = () => (
+  const opcoes = () => (
     <View style={styles.opcoesLinha}>
       {atual.opcoes.map((o) => {
         const ativa = respostas[atual.id] === o.valor;
@@ -225,7 +225,7 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
   );
 
   // ---- Resumo das etapas já respondidas ----
-  const Resumos = () =>
+  const resumos = () =>
     ETAPAS.slice(0, etapa)
       .filter((e) => respostas[e.id])
       .map((e) => (
@@ -248,7 +248,7 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
       ));
 
   // ---- Bloco das outras 15 ----
-  const Opcionais = () => (
+  const opcionais = () => (
     <View style={styles.opcionais}>
       <TouchableOpacity
         style={styles.opcionaisTopo}
@@ -342,7 +342,7 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
               <View style={[styles.barraFill, { width: `${pctEtapas}%` }]} />
             </View>
 
-            <Trilha />
+            {trilha()}
 
             <View style={styles.cardPergunta}>
               <Text style={styles.perguntaNumero}>
@@ -350,7 +350,7 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
               </Text>
               <Text style={styles.perguntaTexto}>{atual.pergunta}</Text>
               <Text style={styles.perguntaDica}>{atual.dica}</Text>
-              <Opcoes />
+              {opcoes()}
               <Text style={styles.rodapeCard}>Você poderá ajustar esta resposta depois.</Text>
             </View>
 
@@ -382,8 +382,8 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
               </View>
             </View>
 
-            <Resumos />
-            <Opcionais />
+            {resumos()}
+            {opcionais()}
 
             <View style={styles.privacidade}>
               <Ionicons name="shield-checkmark-outline" size={18} color={BRAND.blue} />

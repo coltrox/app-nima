@@ -134,8 +134,11 @@ const ProfileScreen = ({ navigation }) => {
     );
   }
 
-  const MenuItem = ({ item, last }) => (
+  // Função que retorna JSX, não componente: um componente declarado aqui teria
+  // identidade nova a cada render e o React remontaria a lista inteira.
+  const menuItem = (item, last) => (
     <TouchableOpacity
+      key={item.title}
       style={[styles.menuItem, last && styles.menuItemLast]}
       activeOpacity={0.7}
       onPress={item.onPress}
@@ -399,14 +402,14 @@ const ProfileScreen = ({ navigation }) => {
         <Text style={styles.sectionLabel}>Minha conta</Text>
         <View style={styles.menuSection}>
           {minhaConta.map((item, i) => (
-            <MenuItem key={item.title} item={item} last={i === minhaConta.length - 1} />
+            menuItem(item, i === minhaConta.length - 1)
           ))}
         </View>
 
         <Text style={styles.sectionLabel}>Descobrir</Text>
         <View style={styles.menuSection}>
           {descobrir.map((item, i) => (
-            <MenuItem key={item.title} item={item} last={i === descobrir.length - 1} />
+            menuItem(item, i === descobrir.length - 1)
           ))}
         </View>
 

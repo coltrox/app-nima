@@ -39,6 +39,7 @@ import Solicitacoes from './src/screens/App/Solicitacoes/index';
 import Vagas from './src/screens/App/Vagas/index';
 import Ongs from './src/screens/App/Ongs/index';
 import Desaparecidos from './src/screens/App/Desaparecidos/index';
+import Patinha from './src/screens/App/Patinha/index';
 
 const Stack = createNativeStackNavigator();
 
@@ -117,6 +118,8 @@ export default function App() {
         {/* Antiperda */}
         <Stack.Screen name="SmartTag" component={SmartTag} />
         <Stack.Screen name="Desaparecidos" component={Desaparecidos} />
+        {/* Como conseguir uma Patinha: comprar, ou ganhar doando/sendo voluntário */}
+        <Stack.Screen name="Patinha" component={Patinha} />
 
         {/* Apoiar e comunidade */}
         <Stack.Screen name="Donation" component={Donation} />
