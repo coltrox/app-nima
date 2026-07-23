@@ -1,118 +1,200 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
+import { BRAND } from '../../../theme';
 
-const { width, height } = Dimensions.get('window');
-const isSmallDevice = width < 375;
-
-export const colors = {
-  navy: '#05082B',
-  blue: '#1D5CFF',
-  white: '#FFFFFF',
-  gray: '#6B7280',
-  ice: '#F8FAFC',
-  lightGray: '#E2E8F0'
-};
+const { width } = Dimensions.get('window');
+const PAD = width * 0.055;
 
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.ice,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: Platform.OS === 'ios' ? 0 : 20,
-  },
+  container: { flex: 1, backgroundColor: BRAND.bg },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 110 },
+
   header: {
-    paddingHorizontal: width * 0.06,
-    paddingTop: Platform.OS === 'ios' ? 10 : 30,
-    paddingBottom: 15,
-  },
-  title: {
-    fontSize: isSmallDevice ? 24 : 28,
-    fontWeight: 'bold',
-    color: colors.navy,
-  },
-  heroSection: {
-    paddingHorizontal: width * 0.06,
-    marginBottom: 25,
-  },
-  heroTitle: {
-    fontSize: isSmallDevice ? 20 : 24,
-    fontWeight: 'bold',
-    color: colors.navy,
-  },
-  heroSubtitle: {
-    color: colors.gray,
-    fontSize: 16,
-    marginTop: 5,
-    lineHeight: 22,
-  },
-  ongCard: {
-    backgroundColor: colors.white,
-    borderRadius: 28,
-    marginHorizontal: width * 0.06,
-    marginBottom: 20,
-    overflow: 'hidden', // Garante que a imagem respeite o border radius
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.navy,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
-  },
-  ongImage: {
-    width: '100%',
-    height: height * 0.22, // Altura proporcional à tela
-    backgroundColor: colors.lightGray,
-  },
-  cardInfo: {
-    padding: 20,
-  },
-  ongName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.navy,
-    marginBottom: 4,
-  },
-  ongCause: {
-    color: colors.gray,
-    fontSize: 14,
-    marginBottom: 20,
-  },
-  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 15,
+    paddingHorizontal: PAD,
+    paddingTop: Platform.OS === 'ios' ? 12 : 44,
   },
-  metaLabel: {
-    fontSize: 12,
-    color: colors.gray,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  bellWrap: { position: 'relative' },
+  bellDot: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: BRAND.blue,
+    borderWidth: 1.5,
+    borderColor: BRAND.bg,
   },
-  metaValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.blue,
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#E7EEFB' },
+
+  title: { fontSize: 30, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink, marginHorizontal: PAD, marginTop: 14 },
+  subtitle: { fontSize: 14.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, marginHorizontal: PAD, marginTop: 2 },
+
+  // ---- Impacto da comunidade ----
+  impactCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#EDF3FE',
+    borderRadius: 20,
+    marginHorizontal: PAD,
+    marginTop: 18,
+    padding: 18,
   },
-  pixButton: {
-    backgroundColor: colors.blue,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
+  impactIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: BRAND.blue,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  impactLabel: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
+  impactRow: { flexDirection: 'row', marginTop: 6 },
+  impactValue: { fontSize: 22, fontFamily: 'Nunito_800ExtraBold', color: BRAND.blue },
+  impactCaption: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft },
+  impactDivider: { width: 1, backgroundColor: '#C9D8F2', marginHorizontal: 14 },
+
+  // ---- Chips de causa ----
+  chipsLabel: { fontSize: 14, fontFamily: 'Nunito_600SemiBold', color: BRAND.inkSoft, marginHorizontal: PAD, marginTop: 20 },
+  chipsRow: { paddingLeft: PAD, paddingRight: PAD / 2, marginTop: 10, flexDirection: 'row' },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: BRAND.card,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    borderRadius: 20,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginRight: 8,
+  },
+  chipActive: { backgroundColor: BRAND.blue, borderColor: BRAND.blue },
+  chipText: { fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
+  chipTextActive: { color: '#fff' },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: PAD,
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  sectionTitle: { fontSize: 21, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink },
+  sectionLink: { fontSize: 14, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
+
+  // ---- Campanha em destaque ----
+  campaignCard: {
+    backgroundColor: BRAND.card,
+    borderRadius: 22,
+    marginHorizontal: PAD,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    overflow: 'hidden',
+  },
+  campaignImageWrap: { position: 'relative' },
+  campaignImage: { width: '100%', height: 170 },
+  heartBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: BRAND.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  campaignBody: { padding: 16 },
+  ongRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  ongName: { fontSize: 15, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink },
+  ongLocal: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  ongLocalText: { fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft },
+  campaignTitle: { fontSize: 20, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink, marginTop: 10 },
+  campaignDesc: { fontSize: 13.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, marginTop: 4, lineHeight: 19 },
+
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+  barBg: { flex: 1, height: 8, borderRadius: 99, backgroundColor: '#E4E7EC' },
+  barFill: { height: '100%', borderRadius: 99, backgroundColor: BRAND.blue },
+  barPct: { fontSize: 13.5, fontFamily: 'Nunito_800ExtraBold', color: BRAND.blue },
+
+  valuesRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 },
+  raised: { fontSize: 19, fontFamily: 'Nunito_800ExtraBold', color: BRAND.blue },
+  raisedLabel: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft },
+  metaLabel: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, textAlign: 'right' },
+  metaValue: { fontSize: 15, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink, textAlign: 'right' },
+
+  statsRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  statText: { fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft },
+
+  pixBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: BRAND.blue,
     borderRadius: 14,
+    paddingVertical: 15,
+    marginTop: 16,
   },
-  pixText: {
-    color: colors.white,
-    fontWeight: 'bold',
-    fontSize: 15,
-  }
+  pixBtnText: { color: '#fff', fontFamily: 'Nunito_800ExtraBold', fontSize: 16 },
+  contasLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  contasText: { fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
+
+  // ---- Outras causas ----
+  otherCard: {
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: BRAND.card,
+    borderRadius: 18,
+    marginHorizontal: PAD,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    padding: 12,
+    alignItems: 'center',
+  },
+  otherImage: { width: 96, height: 82, borderRadius: 12 },
+  otherOng: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  otherOngText: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', color: BRAND.inkSoft },
+  otherTitle: { fontSize: 15, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink, marginTop: 2 },
+  otherBarRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  otherPct: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
+  otherRaised: { fontSize: 13.5, fontFamily: 'Nunito_800ExtraBold', color: BRAND.blue, marginTop: 6 },
+  apoiarBtn: {
+    backgroundColor: BRAND.blue,
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+  },
+  apoiarBtnText: { color: '#fff', fontFamily: 'Nunito_700Bold', fontSize: 13.5 },
+
+  // ---- Nota de transparência ----
+  noteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: BRAND.card,
+    borderRadius: 16,
+    marginHorizontal: PAD,
+    marginTop: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+  },
+  noteText: { flex: 1, fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft },
+  noteLink: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
 });

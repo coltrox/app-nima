@@ -4,6 +4,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import {
+  useFonts,
+  Nunito_400Regular,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from '@expo-google-fonts/nunito';
 
 // --- Importações de Autenticação ---
 import Login from './src/screens/Auth/Login/index';
@@ -32,6 +39,16 @@ const Stack = createNativeStackNavigator();
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [initialRoute, setInitialRoute] = useState('Home');
+
+  // Fonte da marca carregada UMA vez na raiz. Antes só o Login chamava useFonts,
+  // então no F5 as demais telas renderizavam com a fonte do sistema e trocavam
+  // quando a Nunito terminava de carregar — era isso que fazia a fonte "pular".
+  const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+  });
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -63,10 +80,12 @@ export default function App() {
     checkLoginStatus();
   }, []);
 
-  if (isLoading) {
+  // Só renderiza depois que a sessão foi lida E a fonte carregou — sem isso
+  // o app pisca com a fonte errada a cada recarga.
+  if (isLoading || !fontsLoaded) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#05082b', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#FFF" />
+      <View style={{ flex: 1, backgroundColor: '#FBF6EC', justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0151C8" />
       </View>
     );
   }

@@ -1,139 +1,171 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
-const { width, height } = Dimensions.get('window');
+import { BRAND } from '../../../theme';
 
-const isSmallDevice = width < 375;
+const { width } = Dimensions.get('window');
+const PAD = width * 0.055;
 
 export const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  screenHeader: {
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
+  container: { flex: 1, backgroundColor: BRAND.bg },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 110 },
+
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: width * 0.06, 
-    paddingTop: Platform.OS === 'ios' ? 20 : 50,
-    paddingBottom: 20
+    paddingHorizontal: PAD,
+    paddingTop: Platform.OS === 'ios' ? 12 : 44,
   },
-  headerTitle: {
-    fontSize: isSmallDevice ? 28 : 32, 
-    fontWeight: 'bold', 
-    color: '#1D5CFF'
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  bellWrap: { position: 'relative' },
+  bellDot: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: BRAND.blue,
+    borderWidth: 1.5,
+    borderColor: BRAND.bg,
   },
-  statusBadge: {
-    backgroundColor: '#059669', 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    borderRadius: 12
-  },
-  statusText: {
-    color: '#FFF', 
-    fontWeight: 'bold', 
-    fontSize: 12
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 30,
-  },
-  avatarBorder: {
-    width: isSmallDevice ? 120 : 140,
-    height: isSmallDevice ? 120 : 140,
-    borderRadius: isSmallDevice ? 60 : 70,
-    borderWidth: 4,
-    borderColor: '#1D5CFF',
-    padding: 5,
-    backgroundColor: '#FFFFFF',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 10,
-      },
-    }),
-  },
-  avatarImage: {
-    width: '100%', 
-    height: '100%', 
-    borderRadius: isSmallDevice ? 55 : 65
-  },
-  petName: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#05082B',
-    marginTop: 15,
-  },
-  petDetails: {
-    color: '#6B7280', 
-    fontSize: 16
-  },
-  menuItem: {
+  avatarSmall: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#E7EEFB' },
+
+  title: { fontSize: 30, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink, marginHorizontal: PAD, marginTop: 14 },
+  subtitle: { fontSize: 14.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, marginHorizontal: PAD, marginTop: 2 },
+
+  // ---- Card do pet ----
+  petCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+    gap: 16,
+    backgroundColor: '#EDF3FE',
     borderRadius: 22,
-    marginHorizontal: width * 0.06,
+    marginHorizontal: PAD,
+    marginTop: 16,
+    padding: 16,
+  },
+  petPhoto: { width: 92, height: 92, borderRadius: 46, borderWidth: 3, borderColor: BRAND.blue },
+  petNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  petName: { fontSize: 26, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink },
+  petBreed: { fontSize: 13.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, marginTop: 1 },
+  tagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: BRAND.success,
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 8,
+  },
+  tagBadgeText: { color: '#fff', fontFamily: 'Nunito_700Bold', fontSize: 13 },
+  petMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  petMetaLabel: { fontSize: 11.5, fontFamily: 'Nunito_600SemiBold', color: BRAND.inkSoft },
+  petMetaValue: { fontSize: 13, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink },
+
+  // ---- Acessos rápidos ----
+  sectionTitle: {
+    fontSize: 19,
+    fontFamily: 'Nunito_800ExtraBold',
+    color: BRAND.ink,
+    marginHorizontal: PAD,
+    marginTop: 24,
     marginBottom: 12,
+  },
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: PAD },
+  quickCard: {
+    width: (width - PAD * 2 - 12) / 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: BRAND.card,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: BRAND.border,
+    padding: 14,
   },
-  menuItemContent: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    gap: 15
+  quickLabel: { flex: 1, fontSize: 14.5, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
+
+  // ---- Monitoramento da Patinha (card navy) ----
+  tagCard: {
+    backgroundColor: BRAND.navy,
+    borderRadius: 22,
+    marginHorizontal: PAD,
+    marginTop: 20,
+    padding: 18,
   },
-  menuItemTitle: {
-    fontSize: 16, 
-    fontWeight: 'bold', 
-    color: '#05082B'
-  },
-  menuItemSubtitle: {
-    fontSize: 12, 
-    color: '#6B7280'
-  },
-  iconCircle: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
+  tagCardTitle: { fontSize: 17, fontFamily: 'Nunito_800ExtraBold', color: '#fff' },
+  tagOnlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
+  tagOnlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#4ADE80' },
+  tagOnlineText: { fontSize: 12.5, fontFamily: 'Nunito_600SemiBold', color: 'rgba(255,255,255,0.75)' },
+  tagBody: { flexDirection: 'row', gap: 14, marginTop: 14, alignItems: 'center' },
+  tagMapThumb: {
+    width: 108,
+    height: 92,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logCard: {
-    backgroundColor: '#05082B',
-    borderRadius: 28,
-    padding: 20,
-    marginHorizontal: width * 0.06,
-    marginTop: 15,
+  tagInfoLabel: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', color: '#fff' },
+  tagInfoValue: { fontSize: 13, fontFamily: 'Nunito_400Regular', color: 'rgba(255,255,255,0.75)', marginTop: 3 },
+  tagBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: BRAND.blue,
+    borderRadius: 12,
+    paddingVertical: 11,
+    marginTop: 12,
   },
-  logHeader: {
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center'
+  tagBtnText: { color: '#fff', fontFamily: 'Nunito_700Bold', fontSize: 14 },
+  tagHistLink: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 12, alignSelf: 'flex-start' },
+  tagHistText: { fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: '#8FB4F5' },
+
+  // ---- Vacinas ----
+  vacCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: BRAND.card,
+    borderRadius: 18,
+    marginHorizontal: PAD,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    padding: 16,
   },
-  logTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+  vacIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#E7EEFB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  logContent: {
-    marginTop: 20, 
-    borderLeftWidth: 2, 
-    borderLeftColor: '#1D5CFF', 
-    paddingLeft: 15
+  vacTitle: { fontSize: 15.5, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink },
+  vacSub: { fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, marginTop: 1 },
+  vacBarRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
+  vacBarBg: { flex: 1, height: 7, borderRadius: 99, backgroundColor: '#E4E7EC' },
+  vacBarFill: { height: '100%', borderRadius: 99, backgroundColor: BRAND.blue },
+  vacCount: { fontSize: 12, fontFamily: 'Nunito_600SemiBold', color: BRAND.inkSoft },
+  okBadge: { backgroundColor: '#E3F3E9', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 11 },
+  okBadgeText: { fontSize: 12, fontFamily: 'Nunito_700Bold', color: BRAND.success },
+
+  // ---- Cuidados de hoje ----
+  careRow: { flexDirection: 'row', gap: 12, paddingHorizontal: PAD },
+  careCard: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: BRAND.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    paddingVertical: 16,
   },
-  logLabel: {
-    color: '#FFF', 
-    fontWeight: 'bold'
-  },
-  logData: {
-    color: 'rgba(255,255,255,0.7)', 
-    fontSize: 12
-  }
+  careLabel: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
+  careStatus: { fontSize: 12, fontFamily: 'Nunito_600SemiBold' },
 });
