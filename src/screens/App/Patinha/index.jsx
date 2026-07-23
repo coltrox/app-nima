@@ -11,19 +11,25 @@ import { Carregando, Erro } from '../../components/Estado';
 import { BRAND } from '../../../theme';
 import t, { PAD } from '../../../theme/telaStyles';
 import useCarregar from '../../../hooks/useCarregar';
-import patinhaService, { STATUS, estaAberto } from '../../../services/patinhaService';
+import patinhaService, { ORIGENS, STATUS, estaAberto } from '../../../services/patinhaService';
+import eventoService from '../../../services/eventoService';
 import ongService from '../../../services/ongService';
 import animalService from '../../../services/animalService';
 import { mensagemDoErro } from '../../../services/http';
 
-// Como conseguir uma Patinha — agora com pedido de verdade (migração 017).
+// Como conseguir uma Patinha — pedido de verdade (017) e posse de verdade (018).
 //
-// Três origens, e elas NÃO se verificam do mesmo jeito:
-//   voluntariado → o backend confere se há inscrição 'aceito' numa vaga da ONG
-//                  e recusa na hora se não houver;
-//   doacao       → ninguém consegue verificar: o PIX é da própria ONG e
-//                  acontece fora do app. Quem confirma é a ONG, no extrato;
+// Três origens, TODAS verificáveis desde a 018:
+//   voluntariado → o backend confere se há inscrição 'aceito' numa vaga da ONG;
+//   evento       → o backend confere se a ONG marcou sua PRESENÇA no evento.
+//                  Candidatar-se não basta: tem que ter aparecido;
 //   compra       → não passa por ONG, é venda da Nima, e exige endereço.
+//
+// A origem 'doacao' saiu. O PIX é da própria ONG e acontece fora do app, sem
+// webhook — era a única que o sistema não conseguia conferir de verdade.
+//
+// E despachar não transfere a posse: RESERVA. A Patinha vira do tutor quando
+// ele digita o código na caixa de resgate, confirmando que o objeto chegou.
 //
 // TODAS as funções que montam formulário aqui RETORNAM JSX e são chamadas
 // como `formCompra()`. Se fossem componentes declarados neste corpo, cada
@@ -45,10 +51,10 @@ const CAMINHOS = [
     texto: 'A Patinha chega pelo correio, já gravada. É o caminho mais rápido.',
   },
   {
-    origem: 'doacao',
-    icone: 'heart-outline',
-    titulo: 'Ganhar apoiando uma vaquinha',
-    texto: 'Doou para uma campanha? A ONG reserva uma Patinha do estoque dela para você.',
+    origem: 'evento',
+    icone: 'calendar-outline',
+    titulo: 'Ganhar participando de um evento',
+    texto: 'Ajudou numa feira de adoção ou mutirão? Com a presença confirmada pela ONG, a Patinha é sua.',
   },
   {
     origem: 'voluntariado',
@@ -66,6 +72,7 @@ const entregaVazia = {
 const PatinhaScreen = ({ navigation }) => {
   const [aberto, setAberto] = useState(null);       // origem em edição
   const [ongSel, setOngSel] = useState(null);
+  const [eventoSel, setEventoSel] = useState(null); // participação escolhida
   const [petSel, setPetSel] = useState(null);
   const [observacao, setObservacao] = useState('');
   const [entrega, setEntrega] = useState(entregaVazia);
@@ -74,23 +81,35 @@ const PatinhaScreen = ({ navigation }) => {
 
   const dados = useCarregar(
     async () => {
-      const [pedidos, ongs, pets] = await Promise.all([
+      const [pedidos, ongs, pets, participacoes, minhasTags] = await Promise.all([
         patinhaService.meus().catch(() => []),
         ongService.listar().catch(() => []),
         animalService.meus().catch(() => []),
+        eventoService.minhas().catch(() => []),
+        patinhaService.minhas().catch(() => []),
       ]);
-      return { pedidos, ongs, pets };
+      return { pedidos, ongs, pets, participacoes, minhasTags };
     },
-    { inicial: { pedidos: [], ongs: [], pets: [] } }
+    { inicial: { pedidos: [], ongs: [], pets: [], participacoes: [], minhasTags: [] } }
   );
 
-  const { pedidos = [], ongs = [], pets = [] } = dados.dados || {};
+  const {
+    pedidos = [], ongs = [], pets = [], participacoes = [], minhasTags = [],
+  } = dados.dados || {};
+
+  // Só a presença CONFIRMADA e ainda não usada vale como pedido. O backend
+  // calcula isso; aqui é só para não oferecer um botão que vai falhar.
+  const eventosLiberados = useMemo(
+    () => participacoes.filter((p) => p.patinha_disponivel),
+    [participacoes]
+  );
   const emAndamento = useMemo(() => pedidos.filter(estaAberto), [pedidos]);
   const encerrados = useMemo(() => pedidos.filter((p) => !estaAberto(p)), [pedidos]);
 
   const limpar = () => {
     setAberto(null);
     setOngSel(null);
+    setEventoSel(null);
     setPetSel(null);
     setObservacao('');
     setEntrega(entregaVazia);
@@ -105,7 +124,12 @@ const PatinhaScreen = ({ navigation }) => {
   const enviar = async () => {
     setErroForm(null);
 
-    if (aberto !== 'compra' && !ongSel) {
+    // No caminho do evento a ONG vem do próprio evento — não há o que escolher.
+    if (aberto === 'evento' && !eventoSel) {
+      setErroForm('Escolha o evento em que você esteve.');
+      return;
+    }
+    if (aberto === 'voluntariado' && !ongSel) {
       setErroForm('Escolha a ONG que vai atender o pedido.');
       return;
     }
@@ -121,8 +145,15 @@ const PatinhaScreen = ({ navigation }) => {
     setEnviando(true);
     try {
       const corpo = { origem: aberto, observacao: observacao.trim() || null };
-      if (aberto === 'compra') Object.assign(corpo, entrega);
-      else corpo.ong_id = ongSel;
+      if (aberto === 'compra') {
+        Object.assign(corpo, entrega);
+      } else if (aberto === 'evento') {
+        const participacao = eventosLiberados.find((p) => p.id === eventoSel);
+        corpo.evento_id = participacao?.evento_id;
+        corpo.ong_id = participacao?.evento?.ong_id;
+      } else {
+        corpo.ong_id = ongSel;
+      }
       if (petSel) corpo.animal_id = petSel;
 
       await patinhaService.criar(corpo);
@@ -141,6 +172,30 @@ const PatinhaScreen = ({ navigation }) => {
   const [erroAcao, setErroAcao] = useState(null);
 
   const cancelar = (pedido) => setACancelar(pedido);
+
+  // ---- Resgate por código (migração 018) ----
+  const [codigoResgate, setCodigoResgate] = useState('');
+  const [resgatando, setResgatando] = useState(false);
+  const [erroResgate, setErroResgate] = useState(null);
+  const [resgateOk, setResgateOk] = useState(null);
+
+  const resgatar = async () => {
+    const codigo = codigoResgate.trim();
+    if (!codigo) return;
+    setResgatando(true);
+    setErroResgate(null);
+    setResgateOk(null);
+    try {
+      const r = await patinhaService.resgatar(codigo);
+      setResgateOk(r?.message ?? 'Patinha resgatada!');
+      setCodigoResgate('');
+      dados.recarregar();
+    } catch (e) {
+      setErroResgate(mensagemDoErro(e, 'Não foi possível resgatar a Patinha.'));
+    } finally {
+      setResgatando(false);
+    }
+  };
 
   const confirmarCancelamento = async () => {
     const pedido = aCancelar;
@@ -170,7 +225,8 @@ const PatinhaScreen = ({ navigation }) => {
 
         <Text style={[t.cardTitulo, { marginTop: 10 }]}>{destino}</Text>
         <Text style={t.cardTexto}>
-          Pedido por {p.origem === 'compra' ? 'compra' : p.origem === 'doacao' ? 'doação' : 'voluntariado'}
+          Pedido por {(ORIGENS[p.origem] ?? p.origem).toLowerCase()}
+          {p.evento?.titulo ? ` · ${p.evento.titulo}` : ''}
           {p.animal?.nome ? ` · para ${p.animal.nome}` : ''}
         </Text>
 
@@ -332,20 +388,89 @@ const PatinhaScreen = ({ navigation }) => {
     </View>
   );
 
+  // ---- Escolha do evento (origem 'evento') ----
+  // Lista só as participações com presença confirmada e ainda não usadas: são
+  // as únicas que o backend aceita. A ONG sai do próprio evento.
+  const escolherEvento = () => {
+    if (eventosLiberados.length === 0) {
+      return (
+        <View style={[t.card, { marginHorizontal: 0, backgroundColor: '#FFF3D6', borderColor: '#F0DFB0' }]}>
+          <Text style={[t.cardTexto, { marginTop: 0, color: '#8A6100' }]}>
+            Você ainda não tem presença confirmada em nenhum evento. Participe de uma feira ou
+            mutirão e, depois que acontecer, a ONG marca quem apareceu.
+          </Text>
+          <TouchableOpacity
+            style={[t.botaoSecundario, { marginTop: 12 }]}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Donation')}
+          >
+            <Ionicons name="calendar-outline" size={18} color={BRAND.blue} />
+            <Text style={t.botaoSecundarioTexto}>Ver eventos abertos</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        <Text style={t.rotulo}>Em qual evento você esteve?</Text>
+        {eventosLiberados.map((p) => {
+          const ativo = eventoSel === p.id;
+          return (
+            <TouchableOpacity
+              key={p.id}
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 10,
+                borderWidth: 1.5, borderRadius: 14, padding: 14, marginTop: 8,
+                borderColor: ativo ? BRAND.blue : BRAND.border,
+                backgroundColor: ativo ? '#EDF3FE' : BRAND.card,
+              }}
+              activeOpacity={0.85}
+              onPress={() => setEventoSel(p.id)}
+            >
+              <Ionicons
+                name={ativo ? 'radio-button-on' : 'radio-button-off'}
+                size={19}
+                color={ativo ? BRAND.blue : '#C7CFD9'}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: 14.5,
+                    fontFamily: ativo ? 'Nunito_800ExtraBold' : 'Nunito_600SemiBold',
+                    color: ativo ? BRAND.blue : BRAND.ink,
+                  }}
+                >
+                  {p.evento?.titulo ?? 'Evento'}
+                </Text>
+                <Text style={[t.cardTexto, { marginTop: 2 }]}>
+                  {p.evento?.ong?.nome ?? 'ONG'}
+                  {p.evento?.data_inicio
+                    ? ` · ${new Date(p.evento.data_inicio).toLocaleDateString('pt-BR')}`
+                    : ''}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
+
   // ---- Formulário completo de um caminho ----
   const formulario = (c) => (
     <View style={{ marginTop: 16 }}>
-      {c.origem === 'compra' ? formEntrega() : escolherOng()}
+      {c.origem === 'compra'
+        ? formEntrega()
+        : c.origem === 'evento'
+          ? escolherEvento()
+          : escolherOng()}
       {escolherPet()}
 
       <View style={{ marginTop: 16 }}>
         <Campo
-          rotulo={c.origem === 'doacao' ? 'Conte sobre a sua doação' : 'Alguma observação? (opcional)'}
-          placeholder={
-            c.origem === 'doacao'
-              ? 'Ex.: doei R$ 50 na campanha da ração no dia 12.'
-              : 'Escreva aqui…'
-          }
+          rotulo="Alguma observação? (opcional)"
+          placeholder="Escreva aqui…"
           value={observacao}
           onChangeText={setObservacao}
           multilinha
@@ -353,11 +478,11 @@ const PatinhaScreen = ({ navigation }) => {
       </View>
 
       {/* Honestidade sobre o que o sistema consegue conferir */}
-      {c.origem === 'doacao' ? (
-        <View style={[t.card, { marginHorizontal: 0, backgroundColor: '#FFF3D6', borderColor: '#F0DFB0' }]}>
-          <Text style={[t.cardTexto, { marginTop: 0, color: '#8A6100' }]}>
-            A doação acontece no PIX da própria ONG, fora do app — então não temos como
-            confirmar sozinhos. Diga o valor e a data para ela achar no extrato.
+      {c.origem === 'evento' ? (
+        <View style={[t.card, { marginHorizontal: 0, backgroundColor: '#EDF3FE', borderColor: '#D6E3FA' }]}>
+          <Text style={[t.cardTexto, { marginTop: 0 }]}>
+            Só aparecem aqui os eventos em que a ONG confirmou sua presença — é isso que
+            libera a Patinha.
           </Text>
         </View>
       ) : c.origem === 'voluntariado' ? (
@@ -388,6 +513,87 @@ const PatinhaScreen = ({ navigation }) => {
           {enviando ? <ActivityIndicator color="#fff" /> : <Text style={t.botaoTexto}>Enviar pedido</Text>}
         </TouchableOpacity>
       </View>
+    </View>
+  );
+
+  // ---- Patinhas que já são minhas ----
+  const minhasPatinhas = () => {
+    if (minhasTags.length === 0) return null;
+    return (
+      <>
+        <Text style={t.secao}>Suas Patinhas</Text>
+        {minhasTags.map((tag) => (
+          <View key={tag.id} style={t.card}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Ionicons name="pricetag" size={20} color={BRAND.blue} />
+              <Text style={[t.cardTitulo, { flex: 1, marginTop: 0 }]}>{tag.codigo}</Text>
+              <View style={[t.badge, t.badgeVerde]}>
+                <Text style={[t.badgeTexto, t.badgeVerdeTexto]}>Sua</Text>
+              </View>
+            </View>
+            <Text style={t.cardTexto}>
+              {tag.animal?.nome
+                ? `Na coleira do ${tag.animal.nome}`
+                : 'Ainda não está em nenhum pet — vincule em Meu Pet.'}
+            </Text>
+            {tag.ong?.nome ? (
+              <Text style={t.cardTexto}>Emitida por {tag.ong.nome}</Text>
+            ) : null}
+          </View>
+        ))}
+      </>
+    );
+  };
+
+  // ---- Resgate por código ----
+  // Digitar o código não basta sozinho: a ONG precisa ter reservado a tag no
+  // nome desta conta. Os códigos são sequenciais (NIMA-0001, 0002…), então sem
+  // a reserva bastaria chutar o próximo número.
+  const caixaResgate = () => (
+    <View style={t.card}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <Ionicons name="key-outline" size={20} color={BRAND.blue} />
+        <Text style={[t.cardTitulo, { marginTop: 0 }]}>Recebeu uma Patinha?</Text>
+      </View>
+      <Text style={t.cardTexto}>
+        Digite o código gravado na tag para ela virar sua. A ONG precisa ter reservado
+        no seu nome antes de entregar.
+      </Text>
+
+      <View style={{ marginTop: 12 }}>
+        <Campo
+          rotulo="Código da Patinha"
+          placeholder="NIMA-0001"
+          autoCapitalize="characters"
+          autoCorrect={false}
+          value={codigoResgate}
+          onChangeText={setCodigoResgate}
+        />
+      </View>
+
+      {resgateOk ? (
+        <View style={[t.faixaSucesso, { marginHorizontal: 0 }]}>
+          <Ionicons name="checkmark-circle" size={19} color={BRAND.success} />
+          <Text style={t.faixaSucessoTexto}>{resgateOk}</Text>
+        </View>
+      ) : null}
+      {erroResgate ? (
+        <View style={[t.faixaErro, { marginHorizontal: 0 }]}>
+          <Ionicons name="alert-circle" size={19} color={BRAND.danger} />
+          <Text style={t.faixaErroTexto}>{erroResgate}</Text>
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        style={[t.botao, { marginTop: 12 }, (resgatando || !codigoResgate.trim()) && t.botaoDesabilitado]}
+        onPress={resgatar}
+        disabled={resgatando || !codigoResgate.trim()}
+        activeOpacity={0.85}
+      >
+        {resgatando
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={t.botaoTexto}>Resgatar Patinha</Text>}
+      </TouchableOpacity>
     </View>
   );
 
@@ -425,6 +631,9 @@ const PatinhaScreen = ({ navigation }) => {
             <Erro mensagem={dados.erro} onTentarDeNovo={dados.recarregar} />
           ) : (
             <>
+              {minhasPatinhas()}
+              {caixaResgate()}
+
               {emAndamento.length > 0 && (
                 <>
                   <Text style={t.secao}>Seu pedido</Text>
@@ -485,7 +694,7 @@ const PatinhaScreen = ({ navigation }) => {
                         onPress={() => navigation.navigate('Donation')}
                       >
                         <Text style={{ fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: BRAND.blue }}>
-                          {c.origem === 'doacao' ? 'Ver campanhas abertas' : 'Ver vagas abertas'}
+                          {c.origem === 'evento' ? 'Ver eventos abertos' : 'Ver vagas abertas'}
                         </Text>
                       </TouchableOpacity>
                     ) : null}
