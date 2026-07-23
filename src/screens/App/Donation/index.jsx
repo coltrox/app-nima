@@ -77,12 +77,15 @@ const DonationsScreen = ({ navigation }) => {
   };
 
   // ---------------------------------------------------------------- Vaquinha
-  const CardVaquinha = ({ c, destaque }) => {
+  // Funções que retornam JSX, não componentes: declaradas aqui dentro, um
+  // componente teria identidade nova a cada tecla digitada e o React remontaria
+  // a árvore — o campo perderia o foco. Como função, o JSX é inlined no pai.
+  const cardVaquinha = (c, destaque) => {
     const aberto = pixAberto === c.id;
     const pct = percentualDaMeta(c);
 
     return (
-      <View style={t.card}>
+      <View key={c.id} style={t.card}>
         {destaque ? (
           <View
             style={{
@@ -159,7 +162,7 @@ const DonationsScreen = ({ navigation }) => {
   };
 
   // ------------------------------------------------------------ Voluntariado
-  const CardVaga = ({ v }) => {
+  const cardVaga = (v) => {
     const res = resultado[v.id];
     const pct =
       v.total_vagas != null && v.total_vagas > 0
@@ -167,7 +170,7 @@ const DonationsScreen = ({ navigation }) => {
         : null;
 
     return (
-      <View style={t.card}>
+      <View key={v.id} style={t.card}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
           <Ionicons name="shield-checkmark" size={15} color={BRAND.blue} />
           <Text style={[t.cardLinhaTexto, { color: BRAND.inkSoft, fontSize: 13 }]} numberOfLines={1}>
@@ -382,9 +385,9 @@ const DonationsScreen = ({ navigation }) => {
             }
           />
         ) : ehVaquinha ? (
-          filtrados.map((c, i) => <CardVaquinha key={c.id} c={c} destaque={i === 0} />)
+          filtrados.map((c, i) => cardVaquinha(c, i === 0))
         ) : (
-          filtrados.map((v) => <CardVaga key={v.id} v={v} />)
+          filtrados.map((v) => cardVaga(v))
         )}
 
         <View style={[t.card, { backgroundColor: '#EDF3FE', borderColor: '#D6E3FA', marginTop: 18 }]}>

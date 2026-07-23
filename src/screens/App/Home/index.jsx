@@ -309,7 +309,10 @@ const HomeScreen = ({ navigation }) => {
   const destaque = animais[0] ?? null;
   const campanha = (vaquinhas.dados || [])[0] ?? null;
 
-  const Destaque = () => {
+  // Função que retorna JSX, não componente: declarado aqui dentro, um
+  // componente ganharia identidade nova a cada tecla da busca e o React
+  // remontaria a árvore, fazendo o campo perder o foco.
+  const renderDestaque = () => {
     if (feed.carregando && lista.length === 0) return <Carregando texto="Buscando pets perto de você…" />;
     if (feed.erro && lista.length === 0) return <Erro mensagem={feed.erro} onTentarDeNovo={feed.recarregar} />;
     if (!destaque) {
@@ -486,7 +489,7 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <Destaque />
+        {renderDestaque()}
 
         {/* Campanha real da Vitrine Social */}
         {campanha ? (

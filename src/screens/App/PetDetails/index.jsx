@@ -82,7 +82,7 @@ const PetDetailsScreen = ({ navigation, route }) => {
     }
   };
 
-  const Topo = () => (
+  const topo = () => (
     <View style={t.cabecalho}>
       <TouchableOpacity style={t.voltar} onPress={() => navigation.goBack()}>
         <Ionicons name="arrow-back" size={20} color={BRAND.ink} />
@@ -101,7 +101,7 @@ const PetDetailsScreen = ({ navigation, route }) => {
   if (!id) {
     return (
       <SafeAreaView style={t.tela}>
-        <Topo />
+        {topo()}
         <Erro mensagem="Pet não informado." onTentarDeNovo={() => navigation.goBack()} />
       </SafeAreaView>
     );
@@ -111,7 +111,7 @@ const PetDetailsScreen = ({ navigation, route }) => {
     return (
       <SafeAreaView style={t.tela}>
         <StatusBar barStyle="dark-content" />
-        <Topo />
+        {topo()}
         <Carregando texto="Abrindo a ficha…" />
       </SafeAreaView>
     );
@@ -121,7 +121,7 @@ const PetDetailsScreen = ({ navigation, route }) => {
     return (
       <SafeAreaView style={t.tela}>
         <StatusBar barStyle="dark-content" />
-        <Topo />
+        {topo()}
         <Erro mensagem={erro ?? 'Pet não encontrado.'} onTentarDeNovo={recarregar} />
       </SafeAreaView>
     );
@@ -139,7 +139,7 @@ const PetDetailsScreen = ({ navigation, route }) => {
       <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView style={t.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={t.conteudoSemBarra}>
-          <Topo />
+          {topo()}
 
           <View style={{ marginHorizontal: PAD, marginTop: 14, borderRadius: 22, overflow: 'hidden' }}>
             {foto ? (

@@ -152,7 +152,13 @@ const MyPetScreen = ({ navigation }) => {
     );
   };
 
-  const Cabecalho = () => (
+  // ATENÇÃO: estes são funções que RETORNAM JSX, chamadas como `cabecalho()`.
+  // Não podem virar componentes declarados aqui dentro: a
+  // cada tecla o estado muda, esta função é recriada, e o React trata a nova
+  // identidade como outro tipo de componente — desmonta e remonta a árvore
+  // toda. O campo perde o foco e o modal pisca, dando a impressão de que a
+  // tela recarregou. Chamando como função, o JSX é inlined na árvore do pai.
+  const cabecalho = () => (
     <View style={styles.header}>
       <Logo height={26} />
       <View style={styles.headerRight}>
@@ -167,7 +173,7 @@ const MyPetScreen = ({ navigation }) => {
   );
 
   // ---- Formulário ----
-  const Formulario = () => (
+  const formulario = () => (
     <Modal visible={formAberto} animationType="slide" onRequestClose={() => setFormAberto(false)}>
       <SafeAreaView style={t.tela}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -308,7 +314,7 @@ const MyPetScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
-        <Cabecalho />
+        {cabecalho()}
         <Carregando texto="Buscando seus pets…" />
         <Navbar navigation={navigation} currentRoute="MyPet" />
       </SafeAreaView>
@@ -319,7 +325,7 @@ const MyPetScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
-        <Cabecalho />
+        {cabecalho()}
         <Erro mensagem={dados.erro} onTentarDeNovo={dados.recarregar} />
         <Navbar navigation={navigation} currentRoute="MyPet" />
       </SafeAreaView>
@@ -330,7 +336,7 @@ const MyPetScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={styles.container}>
         <StatusBar barStyle="dark-content" />
-        <Cabecalho />
+        {cabecalho()}
         <Text style={styles.title}>Meu pet</Text>
         <Vazio
           icone="paw-outline"
@@ -347,7 +353,7 @@ const MyPetScreen = ({ navigation }) => {
           <Ionicons name="search" size={18} color={BRAND.blue} />
           <Text style={t.botaoSecundarioTexto}>Ver pets para adoção</Text>
         </TouchableOpacity>
-        <Formulario />
+        {formulario()}
         <Navbar navigation={navigation} currentRoute="MyPet" />
       </SafeAreaView>
     );
@@ -360,7 +366,7 @@ const MyPetScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <Cabecalho />
+        {cabecalho()}
 
         <Text style={styles.title}>Meu pet</Text>
         <Text style={styles.subtitle}>Tudo sobre o {pet.nome} em um só lugar.</Text>
@@ -438,13 +444,19 @@ const MyPetScreen = ({ navigation }) => {
             <Text style={styles.quickLabel}>Ficha completa</Text>
           </TouchableOpacity>
 
+          {/* Sem tag vinculada, o atalho leva a COMO CONSEGUIR uma — mandar
+              para a consulta de código sem código não serve pra nada. */}
           <TouchableOpacity
             style={styles.quickCard}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('SmartTag', { codigo: pet.smart_tag_id ?? '' })}
+            onPress={() =>
+              pet.smart_tag_id
+                ? navigation.navigate('SmartTag', { codigo: pet.smart_tag_id })
+                : navigation.navigate('Patinha')
+            }
           >
             <Ionicons name="pricetag-outline" size={24} color={BRAND.blue} />
-            <Text style={styles.quickLabel}>Patinha</Text>
+            <Text style={styles.quickLabel}>{pet.smart_tag_id ? 'Patinha' : 'Ter uma Patinha'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -503,11 +515,24 @@ const MyPetScreen = ({ navigation }) => {
               ))}
             </>
           ) : (
-            <Text style={styles.tagAvisoTexto}>
-              {pet.smart_tag_id
-                ? 'Nenhuma leitura registrada ainda. A primeira aparece aqui assim que alguém escanear a Patinha.'
-                : 'A Patinha é vinculada pela ONG. Assim que o seu pet tiver uma, as leituras aparecem aqui.'}
-            </Text>
+            <>
+              <Text style={styles.tagAvisoTexto}>
+                {pet.smart_tag_id
+                  ? 'Nenhuma leitura registrada ainda. A primeira aparece aqui assim que alguém escanear a Patinha.'
+                  : 'Seu pet ainda não tem Patinha. Dá para comprar e receber em casa, ou ganhar uma apoiando uma vaquinha ou sendo voluntário numa ONG.'}
+              </Text>
+
+              {!pet.smart_tag_id ? (
+                <TouchableOpacity
+                  style={[styles.tagBtn, { marginTop: 14 }]}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('Patinha')}
+                >
+                  <Ionicons name="pricetag-outline" size={17} color="#fff" />
+                  <Text style={styles.tagBtnText}>Como conseguir uma</Text>
+                </TouchableOpacity>
+              ) : null}
+            </>
           )}
         </View>
 
@@ -538,7 +563,7 @@ const MyPetScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      <Formulario />
+      {formulario()}
       <Navbar navigation={navigation} currentRoute="MyPet" />
     </SafeAreaView>
   );
