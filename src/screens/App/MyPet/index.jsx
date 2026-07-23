@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar,
-  Modal, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  Modal, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import Navbar from '../../components/NavBar/navbar';
 import Logo from '../../components/Logo';
 import Campo from '../../components/Campo';
+import Confirmar from '../../components/Confirmar';
 import { Carregando, Erro, Vazio } from '../../components/Estado';
 import { BRAND } from '../../../theme';
 import t, { PAD } from '../../../theme/telaStyles';
@@ -129,27 +130,23 @@ const MyPetScreen = ({ navigation }) => {
     }
   };
 
-  const remover = (alvo) => {
-    Alert.alert(
-      'Remover pet',
-      `Tirar ${alvo.nome} da sua lista? Isso não pode ser desfeito.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await animalService.removerMeu(alvo.id);
-              setIndice(0);
-              dados.recarregar();
-            } catch (e) {
-              Alert.alert('Não deu certo', mensagemDoErro(e));
-            }
-          },
-        },
-      ]
-    );
+  // Confirmação e aviso são Modais nossos, não Alert.alert: no react-native-web
+  // o Alert é um stub e o botão simplesmente não responderia.
+  const [aRemover, setARemover] = useState(null);
+  const [erroAcao, setErroAcao] = useState(null);
+
+  const remover = (alvo) => setARemover(alvo);
+
+  const confirmarRemocao = async () => {
+    const alvo = aRemover;
+    setARemover(null);
+    try {
+      await animalService.removerMeu(alvo.id);
+      setIndice(0);
+      dados.recarregar();
+    } catch (e) {
+      setErroAcao(mensagemDoErro(e));
+    }
   };
 
   // ATENÇÃO: estes são funções que RETORNAM JSX, chamadas como `cabecalho()`.
@@ -565,6 +562,28 @@ const MyPetScreen = ({ navigation }) => {
 
       {formulario()}
       <Navbar navigation={navigation} currentRoute="MyPet" />
+
+      <Confirmar
+        visivel={!!aRemover}
+        icone="trash-outline"
+        perigo
+        titulo="Remover pet"
+        texto={aRemover ? `Tirar ${aRemover.nome} da sua lista? Isso não pode ser desfeito.` : ''}
+        confirmar="Remover"
+        onConfirmar={confirmarRemocao}
+        onCancelar={() => setARemover(null)}
+      />
+
+      <Confirmar
+        visivel={!!erroAcao}
+        informativo
+        perigo
+        icone="alert-circle-outline"
+        titulo="Não deu certo"
+        texto={erroAcao ?? ''}
+        confirmar="Entendi"
+        onConfirmar={() => setErroAcao(null)}
+      />
     </SafeAreaView>
   );
 };

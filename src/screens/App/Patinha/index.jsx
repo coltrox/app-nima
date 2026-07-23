@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Logo from '../../components/Logo';
 import Campo from '../../components/Campo';
+import Confirmar from '../../components/Confirmar';
 import { Carregando, Erro } from '../../components/Estado';
 import { BRAND } from '../../../theme';
 import t, { PAD } from '../../../theme/telaStyles';
@@ -134,22 +135,22 @@ const PatinhaScreen = ({ navigation }) => {
     }
   };
 
-  const cancelar = (pedido) => {
-    Alert.alert('Cancelar pedido', 'Tem certeza? Você pode pedir de novo depois.', [
-      { text: 'Voltar', style: 'cancel' },
-      {
-        text: 'Cancelar pedido',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await patinhaService.cancelar(pedido.id);
-            dados.recarregar();
-          } catch (e) {
-            Alert.alert('Não deu certo', mensagemDoErro(e));
-          }
-        },
-      },
-    ]);
+  // Modal nosso em vez de Alert.alert: no react-native-web o Alert é um stub e
+  // o botão não responderia ao toque.
+  const [aCancelar, setACancelar] = useState(null);
+  const [erroAcao, setErroAcao] = useState(null);
+
+  const cancelar = (pedido) => setACancelar(pedido);
+
+  const confirmarCancelamento = async () => {
+    const pedido = aCancelar;
+    setACancelar(null);
+    try {
+      await patinhaService.cancelar(pedido.id);
+      dados.recarregar();
+    } catch (e) {
+      setErroAcao(mensagemDoErro(e));
+    }
   };
 
   // ---- Cartão de um pedido ----
@@ -523,6 +524,29 @@ const PatinhaScreen = ({ navigation }) => {
           <View style={{ height: 20, paddingHorizontal: PAD }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Confirmar
+        visivel={!!aCancelar}
+        icone="close-circle-outline"
+        perigo
+        titulo="Cancelar pedido"
+        texto="Tem certeza? Você pode pedir de novo depois."
+        confirmar="Cancelar pedido"
+        cancelar="Voltar"
+        onConfirmar={confirmarCancelamento}
+        onCancelar={() => setACancelar(null)}
+      />
+
+      <Confirmar
+        visivel={!!erroAcao}
+        informativo
+        perigo
+        icone="alert-circle-outline"
+        titulo="Não deu certo"
+        texto={erroAcao ?? ''}
+        confirmar="Entendi"
+        onConfirmar={() => setErroAcao(null)}
+      />
     </SafeAreaView>
   );
 };

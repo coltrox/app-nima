@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image, Alert,
+  View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Image,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from './styles';
 import Navbar from '../../components/NavBar/navbar';
 import Anel from '../../components/Anel';
+import Confirmar from '../../components/Confirmar';
 import { Carregando } from '../../components/Estado';
 import { BRAND } from '../../../theme';
 import t, { PAD } from '../../../theme/telaStyles';
@@ -100,22 +101,18 @@ const ProfileScreen = ({ navigation }) => {
 
   const inicial = (nome || 'T').trim().charAt(0).toUpperCase();
 
-  const sair = () => {
-    Alert.alert('Sair da conta', 'Você precisará entrar de novo para adotar ou ver seus pets.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await AsyncStorage.multiRemove(CHAVES_SESSAO);
-          } catch {
-            // segue pro login de qualquer forma
-          }
-          navigation.replace('Login');
-        },
-      },
-    ]);
+  // A confirmação é um Modal nosso, não Alert.alert: no react-native-web o
+  // Alert com botões não abre, e era por isso que o "Sair" não respondia.
+  const [confirmandoSaida, setConfirmandoSaida] = useState(false);
+
+  const sair = async () => {
+    setConfirmandoSaida(false);
+    try {
+      await AsyncStorage.multiRemove(CHAVES_SESSAO);
+    } catch {
+      // segue pro login de qualquer forma — sem token o app não passa do Login
+    }
+    navigation.replace('Login');
   };
 
   const proximoPasso = !respondeu
@@ -222,7 +219,12 @@ const ProfileScreen = ({ navigation }) => {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.title}>Meu perfil</Text>
-          <TouchableOpacity style={styles.logoutBtn} onPress={sair} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={() => setConfirmandoSaida(true)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Feather name="log-out" size={17} color={BRAND.danger} />
             <Text style={styles.logoutText}>Sair</Text>
           </TouchableOpacity>
@@ -425,6 +427,17 @@ const ProfileScreen = ({ navigation }) => {
       </ScrollView>
 
       <Navbar navigation={navigation} currentRoute="Profile" />
+
+      <Confirmar
+        visivel={confirmandoSaida}
+        icone="log-out-outline"
+        perigo
+        titulo="Sair da conta"
+        texto="Você precisará entrar de novo para adotar ou ver seus pets."
+        confirmar="Sair"
+        onConfirmar={sair}
+        onCancelar={() => setConfirmandoSaida(false)}
+      />
     </SafeAreaView>
   );
 };
