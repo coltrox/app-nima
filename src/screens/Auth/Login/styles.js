@@ -1,18 +1,16 @@
 import { StyleSheet, Dimensions, Platform } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
-const logoFontSize = width * 0.18;
 
 import { BRAND } from '../../../theme';
 
-// Paleta da marca (mesma da landing/painel web) — ver src/theme BRAND.
 const colors = {
-  bgWarm: BRAND.bg,         // creme de fundo do design
-  textDark: BRAND.ink,      // azul-marinho
-  textMuted: BRAND.inkSoft,
-  primary: BRAND.blue,      // azul primário (botões, links, logo)
-  white: BRAND.card,
-  border: BRAND.border
+  bgWarm: '#FAF8F5',
+  textDark: '#1A202C',
+  textMuted: '#4A5568',
+  primary: '#0056C6',
+  white: '#FFFFFF',
+  border: '#E2E8F0',
 };
 
 const styles = StyleSheet.create({
@@ -28,127 +26,116 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: width * 0.08, 
-    paddingVertical: height * 0.05,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: 24,
   },
+  
+  /* Logo Super Expandida */
   logoContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginBottom: 10,
-    paddingTop: 15,
-    zIndex: 1, 
+    marginTop: -20,       // Recorta a grande área transparente superior do PNG
+    marginBottom: -100,    // Aproxima o card branco perfeitamente da logo gigante
+    zIndex: 1,
   },
-  pawWrapper: {
-    marginTop: 6,
+  logoImage: {
+    width: width * 0.9,    // Logo ultra destacada ocupando toda a largura útil
+    height: 350,           // Altura muito maior para destacar o nome Nima
+    maxWidth: 520,
   },
-  logoTextWrapper: {
-    opacity: 1, 
-    flexDirection: 'row', 
-    alignItems: 'baseline', 
-    paddingTop: 15
+
+  /* Card Branco Arredondado */
+  cardContainer: {
+    backgroundColor: colors.white,
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  logoText: {
-    fontSize: logoFontSize > 75 ? 75 : logoFontSize,
+
+  welcomeText: {
+    fontSize: 22,
     fontFamily: 'Nunito_800ExtraBold',
     color: colors.textDark,
-    includeFontPadding: false,
-    textAlignVertical: 'center',
+    textAlign: 'center',
+    marginBottom: 4,
   },
-  dot: {
-    position: 'absolute',
-    width: width * 0.040,
-    height: width * 0.040,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    top: Platform.OS === 'ios' ? '34%' : '29%', 
-    left: "31.2%",
-  },
-  formContainer: {
-    gap: height * 0.02,
-    zIndex: 99, 
-    position: 'relative',
-  },
-  welcomeText: {
-    fontSize: width * 0.05,
-    fontFamily: 'Nunito_700Bold',
+  subtitleText: {
+    fontSize: 13,
+    fontFamily: 'Nunito_400Regular',
     color: colors.textMuted,
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
-  input: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 15,
-    height: 58,
-    borderRadius: 16,
-    fontSize: 16,
-    fontFamily: 'Nunito_400Regular',
+
+  /* Campos de Entrada */
+  inputGroup: {
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontFamily: 'Nunito_700Bold',
     color: colors.textDark,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...Platform.select({
-      web: { 
-        outlineStyle: 'none',
-        // Força o fundo a continuar branco mesmo com preenchimento automático no ambiente web
-        boxShadow: '0 0 0px 1000px white inset',
-        WebkitTextFillColor: colors.textDark,
-      }
-    })
+    marginBottom: 6,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 16,
-    height: 58,
+    borderRadius: 12,
+    height: 48,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: 'hidden', // Corta qualquer sobra quadrada dos cantos internos
+    paddingHorizontal: 12,
   },
-  inputWithIcon: {
+  inputLeftIcon: {
+    marginRight: 8,
+  },
+  inputField: {
     flex: 1,
     height: '100%',
-    paddingHorizontal: 15,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'Nunito_400Regular',
     color: colors.textDark,
-    borderTopLeftRadius: 16,    // Força o arredondamento no canto superior esquerdo
-    borderBottomLeftRadius: 16, // Força o arredondamento no canto inferior esquerdo
     ...Platform.select({
       web: { 
         outlineStyle: 'none',
-        boxShadow: '0 0 0px 1000px white inset',
-        WebkitTextFillColor: colors.textDark,
       }
     })
   },
   eyeButton: {
-    paddingHorizontal: 15,
+    paddingLeft: 8,
     height: '100%',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
+
+  /* Lembrar-me e Esqueci Senha */
   bottomInputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 10,
+    marginTop: 2,
+    marginBottom: 18,
   },
   rememberContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 5,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#B9C2CE',
+    borderColor: '#CBD5E0',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
@@ -159,36 +146,53 @@ const styles = StyleSheet.create({
   },
   rememberText: {
     color: colors.textMuted,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Nunito_600SemiBold',
   },
   forgotText: {
     color: colors.primary,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Nunito_600SemiBold',
   },
+
+  /* Botão Entrar */
   loginButton: {
     backgroundColor: colors.primary,
-    height: 58,
-    borderRadius: 16,
+    height: 48,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
-    elevation: 2,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
+  },
+  loginButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   loginButtonText: {
     color: colors.white,
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: 'Nunito_700Bold',
   },
+
+  /* Mensagem de Proteção */
+  protectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  protectionText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontFamily: 'Nunito_400Regular',
+  },
+
+  /* Divisor */
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: height * 0.015,
+    marginVertical: 18,
   },
   line: {
     flex: 1,
@@ -196,48 +200,84 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   orText: {
-    color: '#7F8C8D',
-    fontSize: 14,
+    color: '#A0AEC0',
+    fontSize: 12,
     fontFamily: 'Nunito_600SemiBold',
-    marginHorizontal: 15,
+    marginHorizontal: 12,
+  },
+
+  /* Botões Sociais */
+  socialRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
   },
   socialButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.white,
-    height: 56,
-    borderRadius: 16,
-    gap: 12,
-    marginBottom: 5,
+    height: 44,
+    borderRadius: 12,
+    gap: 8,
     borderWidth: 1,
     borderColor: colors.border,
   },
   socialText: {
     color: colors.textDark,
+    fontSize: 13,
+    fontFamily: 'Nunito_700Bold',
+  },
+
+  /* Criar Conta */
+  signupSection: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  signupPrompt: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontFamily: 'Nunito_400Regular',
+    marginBottom: 8,
+  },
+  signupButton: {
+    width: '100%',
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  signupButtonText: {
+    color: colors.primary,
     fontSize: 15,
     fontFamily: 'Nunito_700Bold',
   },
-  footerRow: {
-    flexDirection: 'row',
+
+  /* Rodapé */
+  termsFooter: {
+    marginTop: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    paddingBottom: 30,
   },
-  footerText: {
-    color: colors.textMuted,
-    fontSize: 14,
+  termsText: {
+    fontSize: 11,
     fontFamily: 'Nunito_400Regular',
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 16,
   },
-  signupText: {
+  termsLink: {
     color: colors.primary,
-    fontSize: 14,
     fontFamily: 'Nunito_700Bold',
   },
+
+  /* Popup Toast */
   popupContainer: {
     position: 'absolute',
-    bottom: 50,
+    bottom: 40,
     left: 20,
     right: 20,
     zIndex: 999,

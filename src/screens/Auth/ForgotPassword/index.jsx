@@ -88,10 +88,7 @@ export default function ForgotPassword() {
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} disabled={isLoading}>
               <Ionicons name="chevron-back" size={22} color={BRAND.blue} />
             </TouchableOpacity>
-            <View style={styles.logoRow}>
-              <Ionicons name="paw" size={22} color={BRAND.blue} />
-              <Text style={styles.logoText}>Nima</Text>
-            </View>
+            <Logo height={24} />
             <Text style={styles.stepLabel}>Etapa 1 de 3</Text>
           </View>
 
