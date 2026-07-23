@@ -160,6 +160,16 @@ export const styles = StyleSheet.create({
   },
   matchImageWrap: { height: screenHeight * 0.28, position: 'relative' },
   matchImage: { width: '100%', height: '100%' },
+  // Nem todo animal tem foto cadastrada (`fotos` pode vir vazio do backend).
+  matchImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.peachLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  matchImagePlaceholderText: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
   compatBadge: {
     position: 'absolute',
     top: 14,

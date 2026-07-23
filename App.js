@@ -12,15 +12,21 @@ import {
   Nunito_800ExtraBold,
 } from '@expo-google-fonts/nunito';
 
-// --- Importações de Autenticação ---
+// --- Autenticação ---
 import Login from './src/screens/Auth/Login/index';
 import Register from './src/screens/Auth/Register/index';
 import ForgotPassword from './src/screens/Auth/ForgotPassword/index';
 import VerifyCode from './src/screens/Auth/VerifyCode/index';
 import ResetPassword from './src/screens/Auth/ResetPassword/index';
 
-// --- Importações do Aplicativo ---
-import Home from './src/screens/App/Home/index'; 
+// --- App do tutor ---
+//
+// O Nima mobile é a superfície do TUTOR: adoção, Patinha, guias e apoio às
+// campanhas. Contas de ONG e de desenvolvedor NÃO entram aqui — a gestão delas
+// (acervo, homologação, candidaturas, equipe, log) vive só no painel web, e o
+// Login recusa esses cargos com a explicação. Por isso não existem mais rotas
+// de AdminDashboard/OngDashboard.
+import Home from './src/screens/App/Home/index';
 import Match from './src/screens/App/Match/index';
 import MyPet from './src/screens/App/MyPet/index';
 import SmartTag from './src/screens/App/SmartTag/index';
@@ -29,10 +35,10 @@ import Guide from './src/screens/App/Guide/index';
 import Profile from './src/screens/App/Profile/index';
 import PetDetails from './src/screens/App/PetDetails/index';
 import Settings from './src/screens/App/Settings/index';
-
-// --- Dashboards Específicos ---
-import AdminDashboard from './src/screens/Admin/Dashboard/index';
-import OngDashboard from './src/screens/Ong/Dashboard/index';
+import Solicitacoes from './src/screens/App/Solicitacoes/index';
+import Vagas from './src/screens/App/Vagas/index';
+import Ongs from './src/screens/App/Ongs/index';
+import Desaparecidos from './src/screens/App/Desaparecidos/index';
 
 const Stack = createNativeStackNavigator();
 
@@ -54,21 +60,22 @@ export default function App() {
     const checkLoginStatus = async () => {
       try {
         const token = await AsyncStorage.getItem('@nima_token');
-        const role = await AsyncStorage.getItem('@nima_user_role');
         const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
 
-        // Se houver token salvo e a opção de lembrar estava ativa, redireciona para a respectiva Dashboard
-        if (token && wasRemembered === 'true') {
-          if (role === 'admin') {
-            setInitialRoute('AdminDashboard');
-          } else if (role === 'ong') {
-            setInitialRoute('OngDashboard');
-          } else {
-            setInitialRoute('Home');
+        // Com ou sem sessão a entrada é a Home: o app funciona para visitante,
+        // e o que exige conta (adotar, meu pet, perfil) pede login na hora.
+        setInitialRoute('Home');
+
+        if (!token || wasRemembered !== 'true') {
+          // Sessão não persistida: limpa para não reaproveitar token velho.
+          if (token && wasRemembered !== 'true') {
+            await AsyncStorage.multiRemove([
+              '@nima_token',
+              '@nima_user_role',
+              '@nima_user_name',
+              '@nima_profile_completed',
+            ]);
           }
-        } else {
-          // Caso contrário, a tela inicial agora é a Home (onde agirá como visitante)
-          setInitialRoute('Home');
         }
       } catch (e) {
         setInitialRoute('Home');
@@ -92,35 +99,41 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
           headerShown: false,
-          animation: 'fade_from_bottom', 
+          animation: 'fade_from_bottom',
         }}
       >
-        {/* Telas de App / Dashboards */}
+        {/* Núcleo do tutor */}
         <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
-        <Stack.Screen name="OngDashboard" component={OngDashboard} />
+        <Stack.Screen name="Match" component={Match} />
+        <Stack.Screen name="PetDetails" component={PetDetails} />
+        <Stack.Screen name="MyPet" component={MyPet} />
+        <Stack.Screen name="Solicitacoes" component={Solicitacoes} />
 
-        {/* Telas de Auth */}
+        {/* Antiperda */}
+        <Stack.Screen name="SmartTag" component={SmartTag} />
+        <Stack.Screen name="Desaparecidos" component={Desaparecidos} />
+
+        {/* Apoiar e comunidade */}
+        <Stack.Screen name="Donation" component={Donation} />
+        <Stack.Screen name="Vagas" component={Vagas} />
+        <Stack.Screen name="Ongs" component={Ongs} />
+
+        {/* Conteúdo e conta */}
+        <Stack.Screen name="Guide" component={Guide} />
+        <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="Settings" component={Settings} />
+
+        {/* Auth */}
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="Register" component={Register} />
         <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
         <Stack.Screen name="VerifyCode" component={VerifyCode} />
         <Stack.Screen name="ResetPassword" component={ResetPassword} />
-        
-        {/* Outras Rotas */}
-        <Stack.Screen name="Match" component={Match} />
-        <Stack.Screen name="MyPet" component={MyPet} />
-        <Stack.Screen name="SmartTag" component={SmartTag} />
-        <Stack.Screen name="Donation" component={Donation} />
-        <Stack.Screen name="Guide" component={Guide} />
-        <Stack.Screen name="Profile" component={Profile} />
-        <Stack.Screen name="PetDetails" component={PetDetails} />
-        <Stack.Screen name="Settings" component={Settings} />
       </Stack.Navigator>
     </NavigationContainer>
   );
