@@ -1,262 +1,401 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, SafeAreaView, StatusBar } from 'react-native';
+import {
+  View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { styles } from './styles';
 import Navbar from '../../components/NavBar/navbar';
 import Logo from '../../components/Logo';
+import Campo from '../../components/Campo';
 import { Carregando, Erro, Vazio } from '../../components/Estado';
 import { BRAND } from '../../../theme';
+import t, { PAD } from '../../../theme/telaStyles';
 import useCarregar from '../../../hooks/useCarregar';
 import vaquinhaService, { emReais, percentualDaMeta } from '../../../services/vaquinhaService';
+import vagaService, { contadorDeVagas } from '../../../services/vagaService';
+import { mensagemDoErro } from '../../../services/http';
 
-// Vitrine Social ligada em GET /api/vaquinhas.
+// Apoiar — duas formas de ajudar, escolhidas no alternador do topo:
+//   DINHEIRO → vaquinhas (PIX da própria ONG)
+//   TEMPO    → vagas de voluntariado (contador X/N e inscrição)
 //
 // O que o design pedia e o banco NÃO tem: foto da campanha, valor arrecadado,
-// número de apoiadores, prazo e categoria. Em vez de inventar número em tela de
-// doação, a campanha mostra só o que é verdade: ONG, título, descrição, meta e
-// o PIX copia-e-cola que a própria ONG cadastrou.
+// apoiadores, prazo e categoria. Não há integração de pagamento — o PIX é da
+// ONG e a doação acontece fora do app. Em tela de doação, número inventado é
+// pior que número ausente, então a campanha mostra só meta e o copia-e-cola.
 // Ver docs/ALINHAMENTO-BACKEND.md.
 
+const MODOS = [
+  { key: 'vaquinhas', label: 'Vaquinhas', icone: 'heart-outline' },
+  { key: 'voluntariado', label: 'Voluntariado', icone: 'hand-right-outline' },
+];
+
 const DonationsScreen = ({ navigation }) => {
+  const [modo, setModo] = useState('vaquinhas');
   const [busca, setBusca] = useState('');
   const [pixAberto, setPixAberto] = useState(null);
 
-  const { dados, carregando, erro, recarregar } = useCarregar(
-    () => vaquinhaService.listar(),
-    { inicial: [] }
-  );
+  // Formulário de inscrição em vaga
+  const [vagaAberta, setVagaAberta] = useState(null);
+  const [mensagem, setMensagem] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [resultado, setResultado] = useState({}); // { [vagaId]: 'ok' | 'mensagem de erro' }
 
-  const campanhas = dados || [];
+  const vaquinhas = useCarregar(() => vaquinhaService.listar(), { inicial: [] });
+  const vagas = useCarregar(() => vagaService.listar(), { inicial: [] });
 
-  const filtradas = useMemo(() => {
+  const atual = modo === 'vaquinhas' ? vaquinhas : vagas;
+  const lista = atual.dados || [];
+
+  const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    if (!termo) return campanhas;
-    return campanhas.filter((c) =>
-      `${c.titulo} ${c.descricao ?? ''} ${c.ong?.nome ?? ''}`.toLowerCase().includes(termo)
+    if (!termo) return lista;
+    return lista.filter((i) =>
+      `${i.titulo ?? ''} ${i.descricao ?? ''} ${i.ong?.nome ?? ''}`.toLowerCase().includes(termo)
     );
-  }, [campanhas, busca]);
+  }, [lista, busca]);
 
-  const destaque = filtradas[0] ?? null;
-  const outras = filtradas.slice(1);
-  const ongsDistintas = new Set(campanhas.map((c) => c.ong_id)).size;
+  const inscrever = async (vaga) => {
+    setEnviando(true);
+    try {
+      await vagaService.inscrever(vaga.id, mensagem);
+      setResultado((r) => ({ ...r, [vaga.id]: 'ok' }));
+      setVagaAberta(null);
+      setMensagem('');
+      vagas.recarregar({ silencioso: true });
+    } catch (e) {
+      setResultado((r) => ({ ...r, [vaga.id]: mensagemDoErro(e, 'Não foi possível se inscrever.') }));
+    } finally {
+      setEnviando(false);
+    }
+  };
 
-  const Cabecalho = () => (
-    <>
-      <View style={styles.header}>
-        <Logo height={26} />
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.bellWrap}>
-            <Ionicons name="notifications-outline" size={23} color={BRAND.ink} />
-            <View style={styles.bellDot} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-            <View style={styles.avatar} />
-          </TouchableOpacity>
-        </View>
-      </View>
+  const trocarModo = (novo) => {
+    setModo(novo);
+    setBusca('');
+    setPixAberto(null);
+    setVagaAberta(null);
+  };
 
-      <Text style={styles.title}>Vitrine Social</Text>
-      <Text style={styles.subtitle}>Apoie uma causa direto no PIX da ONG.</Text>
-    </>
-  );
+  // ---------------------------------------------------------------- Vaquinha
+  const CardVaquinha = ({ c, destaque }) => {
+    const aberto = pixAberto === c.id;
+    const pct = percentualDaMeta(c);
 
-  if (carregando && campanhas.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" />
-        <Cabecalho />
-        <Carregando texto="Buscando campanhas…" />
-        <Navbar navigation={navigation} currentRoute="Donation" />
-      </SafeAreaView>
-    );
-  }
-
-  if (erro && campanhas.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" />
-        <Cabecalho />
-        <Erro mensagem={erro} onTentarDeNovo={recarregar} />
-        <Navbar navigation={navigation} currentRoute="Donation" />
-      </SafeAreaView>
-    );
-  }
-
-  const CardPix = ({ campanha }) => {
-    const aberto = pixAberto === campanha.id;
-    return (
-      <>
-        <TouchableOpacity
-          style={styles.pixBtn}
-          activeOpacity={0.85}
-          onPress={() => setPixAberto(aberto ? null : campanha.id)}
-        >
-          <Ionicons name={aberto ? 'chevron-up' : 'qr-code-outline'} size={20} color="#fff" />
-          <Text style={styles.pixBtnText}>{aberto ? 'Esconder o PIX' : 'Doar via Pix'}</Text>
-        </TouchableOpacity>
-
-        {aberto ? (
-          <View style={styles.pixBox}>
-            <Text style={styles.pixLabel}>Pix copia e cola</Text>
-            {/* selectable: dá para segurar e copiar sem depender de lib de clipboard */}
-            <Text style={styles.pixCode} selectable>{campanha.pix_copia_cola}</Text>
-            <Text style={styles.pixHint}>
-              Segure o código para copiar e cole no app do seu banco.
-              {campanha.pix_chave ? `  ·  Chave: ${campanha.pix_chave}` : ''}
+      <View style={t.card}>
+        {destaque ? (
+          <View
+            style={{
+              height: 96, borderRadius: 14, backgroundColor: '#EDF3FE',
+              alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 14,
+            }}
+          >
+            <Ionicons name="heart" size={30} color={BRAND.blue} />
+            <Text style={{ fontSize: 12.5, fontFamily: 'Nunito_700Bold', color: BRAND.blue }}>
+              Vaquinha verificada
             </Text>
           </View>
         ) : null}
-      </>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <Ionicons name="shield-checkmark" size={15} color={BRAND.blue} />
+          <Text style={[t.cardLinhaTexto, { color: BRAND.inkSoft, fontSize: 13 }]} numberOfLines={1}>
+            {c.ong?.nome ?? 'ONG parceira'}
+          </Text>
+        </View>
+
+        <Text style={[t.cardTitulo, { marginTop: 7 }]}>{c.titulo}</Text>
+        {c.descricao ? <Text style={t.cardTexto}>{c.descricao}</Text> : null}
+
+        {/* A barra só aparece se houver progresso real (hoje nunca há). */}
+        {pct != null ? (
+          <View style={[t.cardLinha, { gap: 10 }]}>
+            <View style={t.barraBg}><View style={[t.barraFill, { width: `${pct}%` }]} /></View>
+            <Text style={{ fontFamily: 'Nunito_800ExtraBold', fontSize: 13.5, color: BRAND.blue }}>{pct}%</Text>
+          </View>
+        ) : null}
+
+        {emReais(c.meta) ? (
+          <View style={t.cardLinha}>
+            <Ionicons name="flag-outline" size={16} color={BRAND.inkSoft} />
+            <Text style={t.cardLinhaTexto}>Meta: {emReais(c.meta)}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[t.botao, { marginTop: 14 }]}
+          activeOpacity={0.85}
+          onPress={() => setPixAberto(aberto ? null : c.id)}
+        >
+          <Ionicons name={aberto ? 'chevron-up' : 'qr-code-outline'} size={19} color="#fff" />
+          <Text style={t.botaoTexto}>{aberto ? 'Esconder o Pix' : 'Doar via Pix'}</Text>
+        </TouchableOpacity>
+
+        {aberto ? (
+          <View
+            style={{
+              backgroundColor: '#F7F4EC', borderWidth: 1, borderColor: BRAND.border,
+              borderRadius: 14, padding: 14, marginTop: 12,
+            }}
+          >
+            <Text style={{ fontSize: 12, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink, letterSpacing: 0.4 }}>
+              PIX COPIA E COLA
+            </Text>
+            {/* selectable: dá para segurar e copiar sem lib de clipboard */}
+            <Text
+              selectable
+              style={{ fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, marginTop: 8, lineHeight: 18 }}
+            >
+              {c.pix_copia_cola}
+            </Text>
+            <Text style={{ fontSize: 12, fontFamily: 'Nunito_600SemiBold', color: BRAND.blue, marginTop: 10 }}>
+              Segure o código para copiar e cole no app do seu banco.
+              {c.pix_chave ? `  ·  Chave: ${c.pix_chave}` : ''}
+            </Text>
+          </View>
+        ) : null}
+      </View>
     );
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <Cabecalho />
+  // ------------------------------------------------------------ Voluntariado
+  const CardVaga = ({ v }) => {
+    const res = resultado[v.id];
+    const pct =
+      v.total_vagas != null && v.total_vagas > 0
+        ? Math.min(100, Math.round(((v.preenchidas ?? 0) / v.total_vagas) * 100))
+        : null;
 
-        {/* Números reais: quantas campanhas estão abertas e de quantas ONGs */}
-        <View style={styles.impactCard}>
-          <View style={styles.impactIcon}>
-            <Ionicons name="heart" size={26} color={BRAND.blue} />
+    return (
+      <View style={t.card}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <Ionicons name="shield-checkmark" size={15} color={BRAND.blue} />
+          <Text style={[t.cardLinhaTexto, { color: BRAND.inkSoft, fontSize: 13 }]} numberOfLines={1}>
+            {v.ong?.nome ?? 'ONG parceira'}
+          </Text>
+        </View>
+
+        <Text style={[t.cardTitulo, { marginTop: 7 }]}>{v.titulo}</Text>
+        {v.descricao ? <Text style={t.cardTexto}>{v.descricao}</Text> : null}
+
+        {/* Contador X/N — mesmo número que a ONG vê no painel */}
+        <View style={[t.cardLinha, { gap: 10 }]}>
+          <View style={t.barraBg}>
+            <View style={[t.barraFill, v.cheia && t.barraCheia, { width: pct != null ? `${pct}%` : '0%' }]} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.impactLabel}>Campanhas abertas agora</Text>
-            <View style={styles.impactRow}>
-              <View>
-                <Text style={styles.impactValue}>{campanhas.length}</Text>
-                <Text style={styles.impactCaption}>vaquinhas ativas</Text>
-              </View>
-              <View style={styles.impactDivider} />
-              <View>
-                <Text style={styles.impactValue}>{ongsDistintas}</Text>
-                <Text style={styles.impactCaption}>{ongsDistintas === 1 ? 'ONG' : 'ONGs'}</Text>
-              </View>
+          <Text
+            style={{
+              fontFamily: 'Nunito_800ExtraBold',
+              fontSize: 13.5,
+              color: v.cheia ? BRAND.success : BRAND.blue,
+            }}
+          >
+            {contadorDeVagas(v)}
+          </Text>
+        </View>
+
+        {res === 'ok' ? (
+          <View style={[t.badge, t.badgeVerde, { marginTop: 12 }]}>
+            <Ionicons name="checkmark-circle" size={13} color={BRAND.success} />
+            <Text style={[t.badgeTexto, t.badgeVerdeTexto]}>Inscrição enviada — aguarde a ONG</Text>
+          </View>
+        ) : res ? (
+          <View style={[t.badge, t.badgeVermelho, { marginTop: 12 }]}>
+            <Ionicons name="alert-circle" size={13} color={BRAND.danger} />
+            <Text style={[t.badgeTexto, t.badgeVermelhoTexto]}>{res}</Text>
+          </View>
+        ) : v.cheia ? (
+          <View style={[t.badge, t.badgeAmbar, { marginTop: 12 }]}>
+            <Ionicons name="lock-closed-outline" size={13} color="#8A6100" />
+            <Text style={[t.badgeTexto, t.badgeAmbarTexto]}>Vaga completa</Text>
+          </View>
+        ) : vagaAberta === v.id ? (
+          <View style={{ marginTop: 14 }}>
+            <Campo
+              rotulo="Conte por que você quer ajudar (opcional)"
+              placeholder="Ex.: tenho disponibilidade nos sábados de manhã…"
+              value={mensagem}
+              onChangeText={setMensagem}
+              multilinha
+            />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <TouchableOpacity
+                style={[t.botaoSecundario, { flex: 1 }]}
+                onPress={() => { setVagaAberta(null); setMensagem(''); }}
+                disabled={enviando}
+              >
+                <Text style={t.botaoSecundarioTexto}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[t.botao, { flex: 1 }, enviando && t.botaoDesabilitado]}
+                onPress={() => inscrever(v)}
+                disabled={enviando}
+                activeOpacity={0.85}
+              >
+                {enviando ? <ActivityIndicator color="#fff" /> : <Text style={t.botaoTexto}>Enviar</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[t.botao, { marginTop: 14 }]}
+            activeOpacity={0.85}
+            onPress={() => { setVagaAberta(v.id); setMensagem(''); }}
+          >
+            <Ionicons name="hand-right-outline" size={19} color="#fff" />
+            <Text style={t.botaoTexto}>Quero me voluntariar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  const ehVaquinha = modo === 'vaquinhas';
+  const ongsDistintas = new Set(lista.map((i) => i.ong_id ?? i.ong?.id)).size;
+
+  return (
+    <SafeAreaView style={t.tela}>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView style={t.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={t.conteudo}>
+        <View style={t.cabecalho}>
+          <Logo height={26} />
+          <TouchableOpacity style={[t.voltar, { marginLeft: 'auto' }]} onPress={() => navigation.navigate('Profile')}>
+            <Ionicons name="person-outline" size={19} color={BRAND.ink} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={t.titulo}>Apoiar</Text>
+        <Text style={t.subtitulo}>Ajude com o que você tem: dinheiro ou tempo.</Text>
+
+        {/* Alternador */}
+        <View
+          style={{
+            flexDirection: 'row',
+            backgroundColor: '#E9E2D2',
+            borderRadius: 16,
+            padding: 4,
+            marginHorizontal: PAD,
+            marginTop: 18,
+          }}
+        >
+          {MODOS.map((m) => {
+            const ativo = modo === m.key;
+            return (
+              <TouchableOpacity
+                key={m.key}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 7,
+                  paddingVertical: 12,
+                  borderRadius: 13,
+                  backgroundColor: ativo ? BRAND.card : 'transparent',
+                }}
+                activeOpacity={0.85}
+                onPress={() => trocarModo(m.key)}
+              >
+                <Ionicons name={m.icone} size={17} color={ativo ? BRAND.blue : BRAND.inkSoft} />
+                <Text
+                  style={{
+                    fontSize: 14.5,
+                    fontFamily: ativo ? 'Nunito_800ExtraBold' : 'Nunito_600SemiBold',
+                    color: ativo ? BRAND.blue : BRAND.inkSoft,
+                  }}
+                >
+                  {m.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Números reais do modo escolhido */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 16,
+            backgroundColor: '#EDF3FE',
+            borderRadius: 20,
+            marginHorizontal: PAD,
+            marginTop: 14,
+            padding: 16,
+          }}
+        >
+          <View
+            style={{
+              width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: BRAND.blue,
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Ionicons name={ehVaquinha ? 'heart' : 'people'} size={24} color={BRAND.blue} />
+          </View>
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+            <View>
+              <Text style={{ fontSize: 22, fontFamily: 'Nunito_800ExtraBold', color: BRAND.blue }}>
+                {lista.length}
+              </Text>
+              <Text style={{ fontSize: 12, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft }}>
+                {ehVaquinha ? 'vaquinhas ativas' : 'vagas abertas'}
+              </Text>
+            </View>
+            <View style={{ width: 1, backgroundColor: '#C9D8F2', marginHorizontal: 16, alignSelf: 'stretch' }} />
+            <View>
+              <Text style={{ fontSize: 22, fontFamily: 'Nunito_800ExtraBold', color: BRAND.blue }}>
+                {ongsDistintas}
+              </Text>
+              <Text style={{ fontSize: 12, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft }}>
+                {ongsDistintas === 1 ? 'ONG' : 'ONGs'}
+              </Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.searchRow}>
-          <Ionicons name="search" size={19} color={BRAND.inkSoft} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar campanha ou ONG"
-            placeholderTextColor={BRAND.inkSoft}
-            value={busca}
-            onChangeText={setBusca}
-          />
-          {busca ? (
-            <TouchableOpacity onPress={() => setBusca('')}>
-              <Ionicons name="close-circle" size={19} color={BRAND.inkSoft} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+        <Campo
+          icone="search"
+          placeholder={ehVaquinha ? 'Buscar campanha ou ONG' : 'Buscar vaga ou ONG'}
+          value={busca}
+          onChangeText={setBusca}
+          containerStyle={{ marginHorizontal: PAD, marginTop: 14 }}
+        />
 
-        {!destaque ? (
+        {atual.carregando && lista.length === 0 ? (
+          <Carregando texto={ehVaquinha ? 'Buscando campanhas…' : 'Buscando vagas…'} />
+        ) : atual.erro && lista.length === 0 ? (
+          <Erro mensagem={atual.erro} onTentarDeNovo={atual.recarregar} />
+        ) : filtrados.length === 0 ? (
           <Vazio
-            icone="heart-outline"
-            titulo={busca ? 'Nenhuma campanha encontrada' : 'Nenhuma campanha aberta'}
+            icone={ehVaquinha ? 'heart-outline' : 'people-outline'}
+            titulo={
+              busca
+                ? 'Nada encontrado'
+                : ehVaquinha
+                  ? 'Nenhuma campanha aberta'
+                  : 'Nenhuma vaga aberta'
+            }
             texto={
               busca
                 ? 'Tente outro termo de busca.'
-                : 'Assim que uma ONG publicar uma vaquinha, ela aparece aqui.'
+                : 'Assim que uma ONG publicar, aparece aqui.'
             }
           />
+        ) : ehVaquinha ? (
+          filtrados.map((c, i) => <CardVaquinha key={c.id} c={c} destaque={i === 0} />)
         ) : (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Campanha em destaque</Text>
-            </View>
-
-            <View style={styles.campaignCard}>
-              <View style={styles.campaignCover}>
-                <Ionicons name="heart" size={34} color={BRAND.blue} />
-                <Text style={styles.campaignCoverText}>Vaquinha verificada</Text>
-              </View>
-
-              <View style={styles.campaignBody}>
-                <View style={styles.ongRow}>
-                  <Ionicons name="shield-checkmark" size={16} color={BRAND.blue} />
-                  <Text style={styles.ongName}>{destaque.ong?.nome ?? 'ONG parceira'}</Text>
-                </View>
-
-                <Text style={styles.campaignTitle}>{destaque.titulo}</Text>
-                {destaque.descricao ? (
-                  <Text style={styles.campaignDesc}>{destaque.descricao}</Text>
-                ) : null}
-
-                {/* A barra só aparece se houver progresso real para mostrar. */}
-                {percentualDaMeta(destaque) != null ? (
-                  <View style={styles.barRow}>
-                    <View style={styles.barBg}>
-                      <View style={[styles.barFill, { width: `${percentualDaMeta(destaque)}%` }]} />
-                    </View>
-                    <Text style={styles.barPct}>{percentualDaMeta(destaque)}%</Text>
-                  </View>
-                ) : null}
-
-                {emReais(destaque.meta) ? (
-                  <View style={styles.metaRow}>
-                    <Ionicons name="flag-outline" size={16} color={BRAND.inkSoft} />
-                    <Text style={styles.metaTexto}>Meta: {emReais(destaque.meta)}</Text>
-                  </View>
-                ) : null}
-
-                <CardPix campanha={destaque} />
-              </View>
-            </View>
-          </>
+          filtrados.map((v) => <CardVaga key={v.id} v={v} />)
         )}
 
-        {outras.length > 0 && (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Outras causas</Text>
-            </View>
-
-            {outras.map((c) => (
-              <View key={c.id} style={[styles.otherCard, { marginBottom: 10 }]}>
-                <View style={styles.otherThumb}>
-                  <Ionicons name="paw" size={26} color={BRAND.blue} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.otherOng}>
-                    <Ionicons name="shield-checkmark" size={13} color={BRAND.blue} />
-                    <Text style={styles.otherOngText}>{c.ong?.nome ?? 'ONG parceira'}</Text>
-                  </View>
-                  <Text style={styles.otherTitle}>{c.titulo}</Text>
-                  {emReais(c.meta) ? (
-                    <Text style={styles.otherRaised}>Meta {emReais(c.meta)}</Text>
-                  ) : null}
-                </View>
-                <TouchableOpacity
-                  style={styles.apoiarBtn}
-                  activeOpacity={0.85}
-                  onPress={() => setPixAberto(pixAberto === c.id ? null : c.id)}
-                >
-                  <Text style={styles.apoiarBtnText}>{pixAberto === c.id ? 'Fechar' : 'Apoiar'}</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-
-            {outras
-              .filter((c) => pixAberto === c.id)
-              .map((c) => (
-                <View key={`pix-${c.id}`} style={[styles.pixBox, { marginHorizontal: 20, marginTop: 0 }]}>
-                  <Text style={styles.pixLabel}>Pix de {c.ong?.nome ?? 'ONG parceira'}</Text>
-                  <Text style={styles.pixCode} selectable>{c.pix_copia_cola}</Text>
-                  <Text style={styles.pixHint}>Segure o código para copiar.</Text>
-                </View>
-              ))}
-          </>
-        )}
-
-        <View style={styles.noteCard}>
-          <Ionicons name="shield-checkmark" size={20} color={BRAND.blue} />
-          <Text style={styles.noteText}>
-            O PIX é da própria ONG, cadastrado por ela no painel. A Nima não intermedia o dinheiro.
-          </Text>
+        <View style={[t.card, { backgroundColor: '#EDF3FE', borderColor: '#D6E3FA', marginTop: 18 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+            <Ionicons name="shield-checkmark" size={19} color={BRAND.blue} />
+            <Text style={[t.cardTexto, { marginTop: 0, flex: 1 }]}>
+              {ehVaquinha
+                ? 'O Pix é da própria ONG, cadastrado por ela no painel. A Nima não intermedia o dinheiro.'
+                : 'A ONG analisa cada inscrição e entra em contato pelos dados do seu perfil.'}
+            </Text>
+          </View>
         </View>
       </ScrollView>
 

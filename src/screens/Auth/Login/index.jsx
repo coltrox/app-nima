@@ -25,6 +25,7 @@ import {
 } from '@expo-google-fonts/nunito';
 import styles from './styles';
 import authService from '../authService';
+import Campo from '../../components/Campo';
 import { BRAND } from '../../../theme';
 
 // Cargos que só existem no painel web. O backend autentica os três, mas o app
@@ -190,42 +191,37 @@ const LoginScreen = () => {
                 Gerencie suas contas e suas preferências.
               </Text>
 
-              {/* Input Email */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>E-mail</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="mail-outline" size={20} color="#7F8C8D" style={styles.inputLeftIcon} />
-                  <TextInput
-                    style={styles.inputField}
-                    placeholder="Pedro.coltro@gmail.com"
-                    placeholderTextColor="#A0AEC0"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    editable={!isLoading}
-                  />
-                </View>
-              </View>
+              {/* Campos: componente único do app — borda no wrapper, altura de
+                  toque adequada e o olho da senha com área de toque ampliada. */}
+              <Campo
+                rotulo="E-mail"
+                icone="mail-outline"
+                placeholder="voce@email.com"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                editable={!isLoading}
+                containerStyle={styles.inputGroup}
+              />
 
-              {/* Input Senha */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Senha</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="lock-closed-outline" size={20} color="#7F8C8D" style={styles.inputLeftIcon} />
-                  <TextInput
-                    style={styles.inputField}
-                    placeholder="••••••••••••••••"
-                    placeholderTextColor="#A0AEC0"
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    editable={!isLoading}
-                  />
-                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#7F8C8D" />
-                  </TouchableOpacity>
-                </View>
-              </View>
+              <Campo
+                rotulo="Senha"
+                icone="lock-closed-outline"
+                placeholder="Sua senha"
+                value={password}
+                onChangeText={setPassword}
+                senha
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                editable={!isLoading}
+                onSubmitEditing={handleLogin}
+                returnKeyType="go"
+                containerStyle={styles.inputGroup}
+              />
 
               {/* Lembrar-me & Esqueceu Senha */}
               <View style={styles.bottomInputRow}>

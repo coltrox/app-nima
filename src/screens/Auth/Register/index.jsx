@@ -16,6 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import authService from '../authService';
 import Logo from '../../components/Logo';
+// Renomeado no import: já existe um wrapper local chamado `Campo` neste arquivo.
+import CampoTexto from '../../components/Campo';
 import { BRAND } from '../../../theme';
 
 // Máscara visual 000.000.000-00 — o authService limpa antes de enviar.
@@ -149,72 +151,77 @@ export default function Register({ navigation }) {
               <Text style={styles.title}>Crie sua conta</Text>
               <Text style={styles.subtitle}>Comece uma nova história com a Nima</Text>
 
-              <Campo label="Nome completo" icon="person-outline">
-                <TextInput
-                  style={styles.input}
-                  placeholder="Digite seu nome completo"
-                  placeholderTextColor="#9CA3AF"
-                  value={fullName}
-                  onChangeText={setFullName}
-                  editable={!isLoading}
-                />
-              </Campo>
+              {/* Campos padronizados do app: a borda fica no wrapper (não no
+                  TextInput), altura mínima de toque e olho da senha com hitSlop. */}
+              <CampoTexto
+                rotulo="Nome completo"
+                icone="person-outline"
+                placeholder="Digite seu nome completo"
+                value={fullName}
+                onChangeText={setFullName}
+                autoCapitalize="words"
+                textContentType="name"
+                editable={!isLoading}
+                containerStyle={{ marginBottom: 16 }}
+              />
 
-              <Campo label="E-mail" icon="mail-outline">
-                <TextInput
-                  style={styles.input}
-                  placeholder="seuemail@exemplo.com"
-                  keyboardType="email-address"
-                  placeholderTextColor="#9CA3AF"
-                  autoCapitalize="none"
-                  value={email}
-                  onChangeText={setEmail}
-                  editable={!isLoading}
-                />
-              </Campo>
+              <CampoTexto
+                rotulo="E-mail"
+                icone="mail-outline"
+                placeholder="seuemail@exemplo.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="emailAddress"
+                value={email}
+                onChangeText={setEmail}
+                editable={!isLoading}
+                containerStyle={{ marginBottom: 16 }}
+              />
 
-              <Campo label="CPF" icon="card-outline" helper="Usado para proteger adoções e doações.">
-                <TextInput
-                  style={styles.input}
-                  placeholder="000.000.000-00"
-                  keyboardType="numeric"
-                  placeholderTextColor="#9CA3AF"
-                  value={cpf}
-                  onChangeText={(v) => setCpf(maskCpf(v))}
-                  maxLength={14}
-                  editable={!isLoading}
-                />
-              </Campo>
+              <CampoTexto
+                rotulo="CPF"
+                icone="card-outline"
+                placeholder="000.000.000-00"
+                keyboardType="numeric"
+                value={cpf}
+                onChangeText={(v) => setCpf(maskCpf(v))}
+                maxLength={14}
+                editable={!isLoading}
+                containerStyle={{ marginBottom: 16 }}
+              />
 
-              <Campo label="Senha" icon="lock-closed-outline">
-                <TextInput
-                  style={styles.input}
-                  placeholder="Crie uma senha forte"
-                  secureTextEntry={!showPassword}
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!isLoading}
-                />
-                <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={BRAND.inkSoft} />
-                </TouchableOpacity>
-              </Campo>
+              <CampoTexto
+                rotulo="Senha"
+                icone="lock-closed-outline"
+                placeholder="Crie uma senha forte"
+                senha
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="newPassword"
+                value={password}
+                onChangeText={setPassword}
+                editable={!isLoading}
+                containerStyle={{ marginBottom: 16 }}
+              />
 
-              <Campo label="Confirmar senha" icon="lock-closed-outline">
-                <TextInput
-                  style={styles.input}
-                  placeholder="Repita a senha"
-                  secureTextEntry={!showConfirm}
-                  placeholderTextColor="#9CA3AF"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  editable={!isLoading}
-                />
-                <TouchableOpacity style={styles.eyeButton} onPress={() => setShowConfirm(!showConfirm)}>
-                  <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={BRAND.inkSoft} />
-                </TouchableOpacity>
-              </Campo>
+              <CampoTexto
+                rotulo="Confirmar senha"
+                icone="lock-closed-outline"
+                placeholder="Repita a senha"
+                senha
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                editable={!isLoading}
+                erro={
+                  confirmPassword.length > 0 && confirmPassword !== password
+                    ? 'As senhas não conferem.'
+                    : undefined
+                }
+                containerStyle={{ marginBottom: 16 }}
+              />
 
               {password.length > 0 && (
                 <>
