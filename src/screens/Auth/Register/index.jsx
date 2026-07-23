@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import authService from '../authService';
+import Logo from '../../components/Logo';
 import { BRAND } from '../../../theme';
 
 // Máscara visual 000.000.000-00 — o authService limpa antes de enviar.
@@ -139,10 +140,7 @@ export default function Register({ navigation }) {
               <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} disabled={isLoading}>
                 <Ionicons name="chevron-back" size={24} color={BRAND.ink} />
               </TouchableOpacity>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Ionicons name="paw" size={22} color={BRAND.blue} />
-                <Text style={styles.logoText}>Nima</Text>
-              </View>
+              <Logo height={24} />
               <Text style={styles.topLabel}>Cadastro</Text>
             </View>
             <Text style={styles.slogan}>Encontros que viram lar.</Text>

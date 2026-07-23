@@ -22,6 +22,7 @@ import { styles, colors } from './styles';
 import authService from '../../Auth/authService'; 
 import Questionario from '../../components/Questionario/Questionario';
 import Navbar from '../../components/NavBar/navbar';
+import Logo from '../../components/Logo';
 
 const { width: screenWidth } = Dimensions.get('window');
 const HAS_SEEN_TUTORIAL_KEY = '@nima:has_seen_tutorial';
@@ -308,10 +309,7 @@ const HomeScreen = ({ navigation }) => {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
         {/* Cabeçalho */}
         <View style={styles.header}>
-          <View style={styles.logoRow}>
-            <Ionicons name="paw" size={24} color={colors.peach} />
-            <Text style={styles.logo}>Nima</Text>
-          </View>
+          <Logo height={26} />
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.bellWrap}>
               <Ionicons name="notifications-outline" size={23} color={colors.textDark} />

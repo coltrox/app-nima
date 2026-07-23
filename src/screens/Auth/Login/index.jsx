@@ -11,6 +11,7 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,12 +23,9 @@ import {
   Nunito_700Bold, 
   Nunito_800ExtraBold 
 } from '@expo-google-fonts/nunito';
-
 import styles from './styles';
 import authService from '../authService';
 import { BRAND } from '../../../theme';
-
-const { width, height } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -36,15 +34,11 @@ const LoginScreen = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
   const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
+
   const popupFade = useRef(new Animated.Value(0)).current;
   const popupSlide = useRef(new Animated.Value(10)).current;
-
   const contentOpacity = useRef(new Animated.Value(1)).current; 
-  const pawX = useRef(new Animated.Value(0)).current;
-  const pawY = useRef(new Animated.Value(0)).current;
-  const pawRotate = useRef(new Animated.Value(-10)).current;
 
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -60,7 +54,7 @@ const LoginScreen = () => {
         const userRole = await AsyncStorage.getItem('@nima_user_role');
         const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
         const savedEmail = await AsyncStorage.getItem('@nima_email');
-        // Migração: versões antigas guardavam a senha em texto puro. Apaga se existir.
+
         await AsyncStorage.removeItem('@nima_password');
 
         if (userToken && wasRemembered === 'true') {
@@ -90,9 +84,6 @@ const LoginScreen = () => {
   useFocusEffect(
     ...[useCallback(() => {
       contentOpacity.setValue(1);
-      pawX.setValue(0);
-      pawY.setValue(0);
-      pawRotate.setValue(-10);
     }, [])]
   );
 
@@ -102,7 +93,6 @@ const LoginScreen = () => {
       Animated.timing(popupFade, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.spring(popupSlide, { toValue: 0, friction: 8, useNativeDriver: true })
     ]).start();
-
     setTimeout(() => {
       Animated.timing(popupFade, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
         setPopupConfig(prev => ({ ...prev, show: false }));
@@ -111,15 +101,11 @@ const LoginScreen = () => {
   };
 
   const handleAuthNavigation = (role) => {
-    const targetX = width * 0.54; 
-    const targetY = height * 0.05; 
-
-    Animated.parallel([
-      Animated.timing(contentOpacity, { toValue: 0, duration: 300, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(pawX, { toValue: targetX, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(pawY, { toValue: targetY, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(pawRotate, { toValue: 25, duration: 500, useNativeDriver: Platform.OS !== 'web' }),
-    ]).start(() => {
+    Animated.timing(contentOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start(() => {
       if (role === 'admin') {
         navigation.replace('AdminDashboard');
       } else if (role === 'ong') {
@@ -139,22 +125,16 @@ const LoginScreen = () => {
       triggerPopup('Preencha email e senha.', 'error');
       return;
     }
-
     setIsLoading(true);
     try {
       const data = await authService.login(email, password);
 
-      // Persistindo os dados principais do login
       await AsyncStorage.setItem('@nima_token', data.token);
       await AsyncStorage.setItem('@nima_user_role', data.user.cargo);
       await AsyncStorage.setItem('@nima_remember_me', rememberMe ? 'true' : 'false');
-
-      // CORREÇÃO: Salvando os dados necessários para a HomeScreen atualizar dinamicamente
       await AsyncStorage.setItem('@nima_user_name', data.user.nome || 'Usuário');
       await AsyncStorage.setItem('@nima_profile_completed', data.user.perfilCompleto ? 'true' : 'false');
 
-      // "Lembrar-me" guarda só o e-mail — senha NUNCA vai pro AsyncStorage
-      // (texto puro, legível por qualquer um com acesso ao aparelho).
       if (rememberMe) {
         await AsyncStorage.setItem('@nima_email', email);
       } else {
@@ -162,7 +142,6 @@ const LoginScreen = () => {
       }
 
       handleAuthNavigation(data.user.cargo);
-
     } catch (error) {
       triggerPopup(String(error), 'error');
     } finally {
@@ -178,59 +157,68 @@ const LoginScreen = () => {
     );
   }
 
-  const pawRotateDeg = pawRotate.interpolate({
-    inputRange: [-10, 25],
-    outputRange: ['-10deg', '25deg'],
-  });
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-          <View style={{ flex: 1, width: '100%' }}>
+          <View style={{ flex: 1, width: '100%', alignItems: 'center' }}>
             
+            {/* Logo isolada sem legenda */}
             <View style={styles.logoContainer}>
-              <Animated.View style={[styles.pawWrapper, { transform: [{ translateX: pawX }, { translateY: pawY }, { rotate: pawRotateDeg }] }]}>
-                <Ionicons name="paw" size={width * 0.22} color={BRAND.blue} />
-              </Animated.View>
-
-              <Animated.View style={[styles.logoTextWrapper, { opacity: contentOpacity }]}>
-                <Text style={styles.logoText}>N<Text style={{ fontWeight: 'normal' }}>ima</Text></Text>
-                <View style={styles.dot} />
+              <Animated.View style={{ opacity: contentOpacity }}>
+                <Image
+                  source={require('../../../../assets/logo.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
               </Animated.View>
             </View>
 
-            <Animated.View style={[styles.formContainer, { opacity: contentOpacity }]}>
+            {/* Card Branco com o Formulário */}
+            <Animated.View style={[styles.cardContainer, { opacity: contentOpacity }]}>
               <Text style={styles.welcomeText}>Bem-vindo de volta!</Text>
-              <Text style={[styles.rememberText, { textAlign: 'center', marginTop: -12, marginBottom: 8 }]}>
+              <Text style={styles.subtitleText}>
                 Gerencie suas contas e suas preferências.
               </Text>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="#7F8C8D"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                editable={!isLoading}
-              />
-
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.inputWithIcon}
-                  placeholder="Senha"
-                  placeholderTextColor="#7F8C8D"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  editable={!isLoading}
-                />
-                <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={22} color="#5A6578" />
-                </TouchableOpacity>
+              {/* Input Email */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>E-mail</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="mail-outline" size={20} color="#7F8C8D" style={styles.inputLeftIcon} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="Pedro.coltro@gmail.com"
+                    placeholderTextColor="#A0AEC0"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    editable={!isLoading}
+                  />
+                </View>
               </View>
 
+              {/* Input Senha */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Senha</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#7F8C8D" style={styles.inputLeftIcon} />
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="••••••••••••••••"
+                    placeholderTextColor="#A0AEC0"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    editable={!isLoading}
+                  />
+                  <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword(!showPassword)}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#7F8C8D" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Lembrar-me & Esqueceu Senha */}
               <View style={styles.bottomInputRow}>
                 <TouchableOpacity style={styles.rememberContainer} activeOpacity={0.7} onPress={() => setRememberMe(!rememberMe)}>
                   <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
@@ -243,37 +231,62 @@ const LoginScreen = () => {
                 </TouchableOpacity>
               </View>
 
+              {/* Botão Principal Entrar */}
               <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={handleLogin} disabled={isLoading}>
-                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>Entrar  →</Text>}
+                {isLoading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <View style={styles.loginButtonContent}>
+                    <Text style={styles.loginButtonText}>Entrar</Text>
+                    <Ionicons name="arrow-forward" size={18} color="#FFF" style={{ marginLeft: 8 }} />
+                  </View>
+                )}
               </TouchableOpacity>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
-                <Ionicons name="shield-checkmark-outline" size={14} color={BRAND.inkSoft} />
-                <Text style={styles.footerText}>Seus dados estão protegidos.</Text>
+              {/* Proteção de Dados */}
+              <View style={styles.protectionRow}>
+                <Ionicons name="shield-checkmark-outline" size={14} color="#7F8C8D" />
+                <Text style={styles.protectionText}>Seus dados estão protegidos.</Text>
               </View>
 
+              {/* Divisor */}
               <View style={styles.divider}>
-                <View style={styles.line} /><Text style={styles.orText}>OU</Text><View style={styles.line} />
+                <View style={styles.line} />
+                <Text style={styles.orText}>ou continue com</Text>
+                <View style={styles.line} />
               </View>
 
-              {/* Login social ainda não tem OAuth no backend — avisa "em breve". */}
-              <TouchableOpacity style={styles.socialButton} onPress={() => triggerPopup('Login com Google chega em breve!', 'success')}>
-                <Ionicons name="logo-google" size={20} color="#2D3748" />
-                <Text style={styles.socialText}>Entrar com o Google</Text>
-              </TouchableOpacity>
+              {/* Botões Sociais Lado a Lado */}
+              <View style={styles.socialRow}>
+                <TouchableOpacity style={styles.socialButton} onPress={() => triggerPopup('Login com Google chega em breve!', 'success')}>
+                  <Ionicons name="logo-google" size={18} color="#EA4335" />
+                  <Text style={styles.socialText}>Google</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.socialButton} onPress={() => triggerPopup('Login com Facebook chega em breve!', 'success')}>
-                <Ionicons name="logo-facebook" size={20} color="#2D3748" />
-                <Text style={styles.socialText}>Entrar com o Facebook</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.socialButton} onPress={() => triggerPopup('Login com Facebook chega em breve!', 'success')}>
+                  <Ionicons name="logo-facebook" size={18} color="#1877F2" />
+                  <Text style={styles.socialText}>Facebook</Text>
+                </TouchableOpacity>
+              </View>
 
-              <View style={styles.footerRow}>
-                <Text style={styles.footerText}>Ainda não tem uma conta? </Text>
-                <TouchableOpacity onPress={() => handleSimpleNavigation('Register')}>
-                  <Text style={styles.signupText}>Cadastre-se</Text>
+              {/* Rodapé Cadastre-se */}
+              <View style={styles.signupSection}>
+                <Text style={styles.signupPrompt}>Ainda não tem uma conta?</Text>
+                <TouchableOpacity style={styles.signupButton} onPress={() => handleSimpleNavigation('Register')}>
+                  <Text style={styles.signupButtonText}>Criar conta</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
+
+            {/* Rodapé Termos e ícone de Pata */}
+            <View style={styles.termsFooter}>
+              <Text style={styles.termsText}>
+                Ao continuar, você concorda com os{'\n'}
+                <Text style={styles.termsLink}>Termos de Uso</Text> e a <Text style={styles.termsLink}>Política de Privacidade</Text>.
+              </Text>
+              <Ionicons name="paw-outline" size={24} color="#0056C6" style={{ marginTop: 12, opacity: 0.6 }} />
+            </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
