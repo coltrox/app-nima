@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
-  FlatList,
   TouchableOpacity,
   TextInput,
   Image,
@@ -13,16 +12,21 @@ import {
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
-// Importando estilos e cores estruturados
 import { styles, colors } from './styles';
-import authService from '../../Auth/authService'; 
+import authService from '../../Auth/authService';
 import Questionario from '../../components/Questionario/Questionario';
 import Navbar from '../../components/NavBar/navbar';
 import Logo from '../../components/Logo';
+import { Carregando, Erro, Vazio, Aviso } from '../../components/Estado';
+import useCarregar from '../../../hooks/useCarregar';
+import animalService, { primeiraFoto } from '../../../services/animalService';
+import vaquinhaService, { emReais } from '../../../services/vaquinhaService';
+import questionarioService from '../../../services/questionarioService';
+import { mensagemDoErro } from '../../../services/http';
 
 const { width: screenWidth } = Dimensions.get('window');
 const HAS_SEEN_TUTORIAL_KEY = '@nima:has_seen_tutorial';
@@ -44,7 +48,7 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
       title: 'Bem-vindo ao nima',
       description: 'Encontre conexões autênticas e mude vidas. O seu match ideal está a poucos passos de distância.',
       icon: 'heart',
-      colors: ['#FFEAE6', '#FFDCD3'],
+      colors: ['#EDF3FE', '#DCE8FC'],
       iconColor: colors.peach,
     },
     {
@@ -76,10 +80,7 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
   const handleNext = () => {
     const nextIndex = currentSlide + 1;
     if (nextIndex < slides.length) {
-      flatListRef.current?.scrollToOffset({
-        offset: nextIndex * screenWidth,
-        animated: true,
-      });
+      flatListRef.current?.scrollToOffset({ offset: nextIndex * screenWidth, animated: true });
     } else {
       onFinish();
     }
@@ -87,7 +88,7 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-    { 
+    {
       useNativeDriver: false,
       listener: (event) => {
         const offsetX = event.nativeEvent.contentOffset.x;
@@ -95,7 +96,7 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
         if (index !== currentSlide && index >= 0 && index < slides.length) {
           setCurrentSlide(index);
         }
-      }
+      },
     }
   );
 
@@ -103,13 +104,13 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
     <LinearGradient colors={item.colors} style={styles.slideContainer}>
       <View style={[styles.bgCircle, { top: 60, left: -40, backgroundColor: 'rgba(255,255,255,0.4)', width: 140, height: 140 }]} />
       <View style={[styles.bgCircle, { bottom: 120, right: -50, backgroundColor: 'rgba(255,255,255,0.3)', width: 200, height: 200 }]} />
-      
+
       <View style={styles.slideContent}>
         <View style={[styles.slideIconContainer, { borderColor: item.iconColor, borderWidth: 1.5, borderRadius: 50, padding: 24 }]}>
           <Ionicons name={item.icon} size={70} color={item.iconColor} />
         </View>
-        <Text style={[styles.slideTitle, { fontWeight: '700', letterSpacing: -0.5, marginTop: 30 }]}>{item.title}</Text>
-        <Text style={[styles.slideDescription, { lineHeight: 24, fontSize: 15, color: '#555' }]}>{item.description}</Text>
+        <Text style={[styles.slideTitle, { letterSpacing: -0.5, marginTop: 30 }]}>{item.title}</Text>
+        <Text style={[styles.slideDescription, { lineHeight: 24, fontSize: 15 }]}>{item.description}</Text>
       </View>
     </LinearGradient>
   );
@@ -117,7 +118,7 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
   const dotWidth = 10;
   const dotGap = 12;
   const totalDotShift = dotWidth + dotGap;
-  
+
   const indicatorTranslateX = scrollX.interpolate({
     inputRange: [0, screenWidth * (slides.length - 1)],
     outputRange: [0, (slides.length - 1) * totalDotShift],
@@ -127,9 +128,8 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
   return (
     <Modal visible={visible} animationType="fade" transparent={false}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.bgWarm }}>
-        
         <TouchableOpacity style={styles.skipButton} onPress={onClose}>
-          <Text style={[styles.skipButtonText, { fontWeight: '600', color: colors.textDark }]}>Pular</Text>
+          <Text style={styles.skipButtonText}>Pular</Text>
         </TouchableOpacity>
 
         <Animated.FlatList
@@ -142,11 +142,7 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
           showsHorizontalScrollIndicator={false}
           snapToAlignment="center"
           decelerationRate="fast"
-          getItemLayout={(_, index) => ({
-            length: screenWidth,
-            offset: screenWidth * index,
-            index,
-          })}
+          getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
           onScroll={handleScroll}
           scrollEventThrottle={16}
         />
@@ -155,23 +151,18 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
           <View style={styles.paginationDotsContainer}>
             <View style={styles.passiveDotsRow}>
               {slides.map((_, index) => (
-                <View key={index} style={[styles.dotInactive, { backgroundColor: 'rgba(0,0,0,0.1)' }]} />
+                <View key={index} style={styles.dotInactive} />
               ))}
             </View>
-            
-            <Animated.View 
-              style={[
-                styles.dotActiveAnimated, 
-                { transform: [{ translateX: indicatorTranslateX }] }
-              ]}
-            >
+
+            <Animated.View style={[styles.dotActiveAnimated, { transform: [{ translateX: indicatorTranslateX }] }]}>
               <Text style={{ fontSize: 16 }}>🐾</Text>
             </Animated.View>
           </View>
 
           <TouchableOpacity style={[styles.slideActionNext, { borderRadius: 25, paddingHorizontal: 24 }]} onPress={handleNext}>
-            <Text style={[styles.slideActionNextText, { fontWeight: '600' }]}>
-              {currentSlide === slides.length - 1 ? "Começar" : "Próximo"}
+            <Text style={styles.slideActionNextText}>
+              {currentSlide === slides.length - 1 ? 'Começar' : 'Próximo'}
             </Text>
             {currentSlide < slides.length - 1 && (
               <Ionicons name="arrow-forward" size={16} color={colors.white} style={{ marginLeft: 6 }} />
@@ -183,57 +174,83 @@ const TutorialTutorial = ({ visible, onClose, onFinish }) => {
   );
 };
 
+// Ações rápidas: cada uma leva a uma tela que existe de verdade no backend.
+// "Apadrinhar" saiu — não há apadrinhamento no banco nem na API.
+const ACOES = [
+  { key: 'adotar', label: 'Adotar', icon: 'paw-outline', rota: 'Match' },
+  { key: 'perdidos', label: 'Perdidos', icon: 'search-outline', rota: 'Desaparecidos' },
+  { key: 'doar', label: 'Doar', icon: 'gift-outline', rota: 'Donation' },
+  { key: 'ongs', label: 'ONGs', icon: 'business-outline', rota: 'Ongs' },
+];
+
 // --- COMPONENTE PRINCIPAL HOME ---
 const HomeScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSmartInsights, setShowSmartInsights] = useState(true);
   const [isQuizVisible, setIsQuizVisible] = useState(false);
+  const [enviandoQuiz, setEnviandoQuiz] = useState(false);
+  const [erroQuiz, setErroQuiz] = useState(null);
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
-  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [isFirstTimeTutorialVisible, setIsFirstTimeTutorialVisible] = useState(false);
 
-  // Carrega e atualiza dinamicamente as informações com validação estrita de persistência
+  // Feed de animais: tenta o recomendado (precisa de questionário) e cai
+  // para a vitrine geral quando o tutor ainda não respondeu.
+  const feed = useCarregar(() => animalService.feed(), {
+    inicial: { lista: [], personalizado: false, aviso: null },
+  });
+
+  // Campanha do rodapé — mesma fonte da Vitrine Social.
+  const vaquinhas = useCarregar(() => vaquinhaService.listar(), { inicial: [] });
+
   useFocusEffect(
     React.useCallback(() => {
       const loadUserData = async () => {
         try {
           const token = await AsyncStorage.getItem('@nima_token');
           const rememberMe = await AsyncStorage.getItem('@nima_remember_me');
-          const fullName = await AsyncStorage.getItem('@nima_user_name'); 
-          const profileCompletedStatus = await AsyncStorage.getItem('@nima_profile_completed');
+          const fullName = await AsyncStorage.getItem('@nima_user_name');
 
           if (token) {
-            // Se o app acabou de sofrer um F5/Recarregamento E o usuário NÃO pediu para manter logado
+            // F5/recarregamento sem "manter conectado": derruba a sessão.
             if (isInitialAppLoad && rememberMe !== 'true') {
-              await AsyncStorage.removeItem('@nima_token');
-              await AsyncStorage.removeItem('@nima_user_role');
-              await AsyncStorage.removeItem('@nima_user_name');
-              await AsyncStorage.removeItem('@nima_profile_completed');
-              
+              await AsyncStorage.multiRemove([
+                '@nima_token',
+                '@nima_user_role',
+                '@nima_user_name',
+                '@nima_profile_completed',
+              ]);
               setIsLoggedIn(false);
               setUserName('');
-              setIsProfileComplete(false);
-              isInitialAppLoad = false; 
+              isInitialAppLoad = false;
               return;
             }
 
-            // Fluxo normal: Mantém logado (seja vindo direto do LoginScreen ou com rememberMe ativado)
             setIsLoggedIn(true);
             setUserName(authService.getFirstName(fullName || ''));
-            setIsProfileComplete(profileCompletedStatus === 'true');
+
+            // Quem manda é o backend, não o flag local: o login não devolve
+            // "perfilCompleto", então perguntar ao /auth/relatorio é a única
+            // forma correta de saber se o questionário já foi respondido.
+            try {
+              const respondeu = await questionarioService.jaRespondeu();
+              setIsProfileComplete(respondeu);
+              await AsyncStorage.setItem('@nima_profile_completed', respondeu ? 'true' : 'false');
+            } catch {
+              // Offline: confia no último valor conhecido em vez de incomodar.
+              const salvo = await AsyncStorage.getItem('@nima_profile_completed');
+              setIsProfileComplete(salvo !== 'false');
+            }
           } else {
             setIsLoggedIn(false);
             setUserName('');
-            setIsProfileComplete(false);
+            setIsProfileComplete(true); // visitante não vê convite de questionário
           }
 
-          // Após a primeira checagem de foco no ciclo de vida atual da memória, desativa o gatilho inicial
           isInitialAppLoad = false;
-
         } catch (error) {
-          console.error("Erro ao carregar dados do usuário na Home:", error);
+          console.error('Erro ao carregar dados do usuário na Home:', error);
         }
       };
 
@@ -245,11 +262,9 @@ const HomeScreen = ({ navigation }) => {
     const checkTutorialStatus = async () => {
       try {
         const hasSeen = await AsyncStorage.getItem(HAS_SEEN_TUTORIAL_KEY);
-        if (hasSeen === null) {
-          setIsFirstTimeTutorialVisible(true);
-        }
+        if (hasSeen === null) setIsFirstTimeTutorialVisible(true);
       } catch (error) {
-        console.error("Erro ao ler o AsyncStorage:", error);
+        console.error('Erro ao ler o AsyncStorage:', error);
       }
     };
     checkTutorialStatus();
@@ -260,43 +275,120 @@ const HomeScreen = ({ navigation }) => {
     try {
       await AsyncStorage.setItem(HAS_SEEN_TUTORIAL_KEY, 'true');
     } catch (error) {
-      console.error("Erro ao gravar no AsyncStorage:", error);
+      console.error('Erro ao gravar no AsyncStorage:', error);
     }
   };
 
-  const handleCloseQuiz = () => { setIsQuizVisible(false); };
-  
-  const handleCompleteQuiz = async (data) => {
-    setIsQuizVisible(false);
+  const handleCompleteQuiz = useCallback(async (respostas) => {
+    setEnviandoQuiz(true);
+    setErroQuiz(null);
     try {
-      await authService.completeProfile(data);
+      await questionarioService.enviar(respostas);
+      await AsyncStorage.setItem('@nima_profile_completed', 'true');
       setIsProfileComplete(true);
-    } catch (error) {
-      console.error(error);
+      setIsQuizVisible(false);
+      feed.recarregar(); // agora o feed vira recomendação de verdade
+    } catch (e) {
+      setErroQuiz(mensagemDoErro(e, 'Não foi possível salvar suas respostas.'));
+    } finally {
+      setEnviandoQuiz(false);
     }
-  };
+  }, [feed]);
 
-  // Dados mockados (visual-first). Serão ligados a /animais/recomendados depois.
-  const acoes = [
-    { key: 'adotar', label: 'Adotar', icon: 'paw-outline', active: true },
-    { key: 'apadrinhar', label: 'Apadrinhar', icon: 'heart-outline' },
-    { key: 'doar', label: 'Doar', icon: 'gift-outline' },
-    { key: 'ongs', label: 'ONGs', icon: 'business-outline' },
-  ];
-  const match = {
-    nome: 'Bento',
-    idade: '2 anos',
-    km: '3,2 km',
-    compat: 92,
-    ong: 'ONG Patas Unidas',
-    image: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=800&auto=format&fit=crop',
-    tags: [
-      { icon: 'shield-checkmark-outline', label: 'Vacinado' },
-      { icon: 'paw-outline', label: 'Porte médio' },
-      { icon: 'heart-outline', label: 'Carinhoso' },
-    ],
+  const { lista, personalizado, aviso } = feed.dados || { lista: [], personalizado: false, aviso: null };
+
+  const animais = useMemo(() => {
+    const termo = searchQuery.trim().toLowerCase();
+    if (!termo) return lista;
+    return lista.filter((a) =>
+      `${a.nome ?? ''} ${a.raca ?? ''} ${a.especie ?? ''} ${a.porte ?? ''}`.toLowerCase().includes(termo)
+    );
+  }, [lista, searchQuery]);
+
+  const destaque = animais[0] ?? null;
+  const campanha = (vaquinhas.dados || [])[0] ?? null;
+
+  const Destaque = () => {
+    if (feed.carregando && lista.length === 0) return <Carregando texto="Buscando pets perto de você…" />;
+    if (feed.erro && lista.length === 0) return <Erro mensagem={feed.erro} onTentarDeNovo={feed.recarregar} />;
+    if (!destaque) {
+      return (
+        <Vazio
+          icone="paw-outline"
+          titulo={searchQuery ? 'Nenhum pet com esse termo' : 'Nenhum pet disponível ainda'}
+          texto={
+            searchQuery
+              ? 'Tente outro nome, raça ou porte.'
+              : 'Assim que uma ONG cadastrar um animal, ele aparece aqui.'
+          }
+        />
+      );
+    }
+
+    const foto = primeiraFoto(destaque);
+    return (
+      <View style={styles.matchCard}>
+        <View style={styles.matchImageWrap}>
+          {foto ? (
+            <Image source={{ uri: foto }} style={styles.matchImage} />
+          ) : (
+            <View style={styles.matchImagePlaceholder}>
+              <Ionicons name="paw" size={40} color={colors.peach} />
+              <Text style={styles.matchImagePlaceholderText}>Sem foto cadastrada</Text>
+            </View>
+          )}
+
+          {/* O score só existe no feed recomendado (vem do questionário). */}
+          {destaque.compatibilidade != null && (
+            <View style={styles.compatBadge}>
+              <Ionicons name="heart" size={16} color={colors.peach} />
+              <View>
+                <Text style={styles.compatValue}>{Math.round(destaque.compatibilidade)}%</Text>
+                <Text style={styles.compatLabel}>compatível</Text>
+              </View>
+            </View>
+          )}
+
+          {destaque.status_posse ? (
+            <View style={styles.ongBadge}>
+              <Ionicons name="shield-checkmark" size={14} color={colors.peach} />
+              <Text style={styles.ongBadgeText}>{destaque.status_posse}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.matchBody}>
+          <View style={styles.matchTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.matchName}>{destaque.nome}</Text>
+              <Text style={styles.matchMeta}>
+                {[destaque.idade, destaque.raca].filter(Boolean).join('  ·  ')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.matchBtn}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('PetDetails', { id: destaque.id })}
+            >
+              <Text style={styles.matchBtnText}>Conhecer</Text>
+              <Ionicons name="chevron-forward" size={15} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tagRow}>
+            {[destaque.especie, destaque.porte, destaque.temperamento]
+              .filter(Boolean)
+              .map((t) => (
+                <View key={t} style={styles.tag}>
+                  <Ionicons name="ellipse" size={7} color={colors.peach} />
+                  <Text style={styles.tagText}>{t}</Text>
+                </View>
+              ))}
+          </View>
+        </View>
+      </View>
+    );
   };
-  const perfilPct = 40;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -307,7 +399,6 @@ const HomeScreen = ({ navigation }) => {
       />
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
-        {/* Cabeçalho */}
         <View style={styles.header}>
           <Logo height={26} />
           <View style={styles.headerRight}>
@@ -321,132 +412,107 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.locationPill} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.locationPill} activeOpacity={0.7} onPress={() => navigation.navigate('Ongs')}>
           <Ionicons name="location-outline" size={15} color={colors.peach} />
-          <Text style={styles.locationText}>Campinas, SP</Text>
-          <Ionicons name="chevron-down" size={14} color={colors.textDark} />
+          <Text style={styles.locationText}>ONGs perto de você</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.textDark} />
         </TouchableOpacity>
 
-        {/* Saudação */}
         <View style={styles.greetingSection}>
           <Text style={styles.greeting}>Olá, {isLoggedIn && userName ? userName : 'tutor'}!</Text>
           <Text style={styles.greetingSub}>Pronto para encontrar um novo amigo?</Text>
         </View>
 
-        {/* Busca */}
         <View style={styles.searchRow}>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color={colors.textMuted} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Buscar cães, raças ou cidades"
+              placeholder="Buscar por nome, raça ou porte"
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor={colors.textMuted}
             />
           </View>
-          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.85}>
-            <Ionicons name="options-outline" size={22} color="#fff" />
+          <TouchableOpacity style={styles.filterBtn} activeOpacity={0.85} onPress={() => navigation.navigate('Match')}>
+            <Ionicons name="grid-outline" size={22} color="#fff" />
           </TouchableOpacity>
         </View>
 
-        {/* Ações rápidas */}
         <View style={styles.quickRow}>
-          {acoes.map((a) => (
-            <TouchableOpacity key={a.key} style={[styles.quickCard, a.active && styles.quickCardActive]} activeOpacity={0.85}>
-              <Ionicons name={a.icon} size={26} color={a.active ? colors.peach : colors.textDark} />
-              <Text style={[styles.quickLabel, a.active && { color: colors.peach }]}>{a.label}</Text>
+          {ACOES.map((a) => (
+            <TouchableOpacity
+              key={a.key}
+              style={styles.quickCard}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate(a.rota)}
+            >
+              <Ionicons name={a.icon} size={26} color={colors.textDark} />
+              <Text style={styles.quickLabel}>{a.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Banner de progresso do perfil → abre o questionário */}
-        {!isProfileComplete && (
+        {/* Convite ao questionário — só quando o backend confirma que falta */}
+        {isLoggedIn && !isProfileComplete && (
           <TouchableOpacity style={styles.profileBanner} activeOpacity={0.9} onPress={() => setIsQuizVisible(true)}>
             <View style={styles.profileBannerIcon}>
               <Ionicons name="paw" size={22} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.profileBannerText}>Seu perfil está {perfilPct}% completo</Text>
-              <View style={styles.profileBarBg}>
-                <View style={[styles.profileBarFill, { width: `${perfilPct}%` }]} />
-              </View>
+              <Text style={styles.profileBannerText}>Responda o questionário de afinidade</Text>
+              <Text style={[styles.profileContinue, { opacity: 0.8, marginTop: 2 }]}>
+                São 20 perguntas — é o que gera suas recomendações.
+              </Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-              <Text style={styles.profileContinue}>Continuar</Text>
-              <Ionicons name="chevron-forward" size={16} color="#fff" />
-            </View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
           </TouchableOpacity>
         )}
 
-        {/* Seu melhor match */}
+        {aviso && isLoggedIn && isProfileComplete ? <Aviso texto={aviso} /> : null}
+
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Seu melhor match</Text>
-          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+          <Text style={styles.sectionTitle}>
+            {personalizado ? 'Seu melhor match' : 'Disponíveis para adoção'}
+          </Text>
+          <TouchableOpacity
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+            onPress={() => navigation.navigate('Match')}
+          >
             <Text style={styles.sectionLink}>Ver todos</Text>
             <Ionicons name="chevron-forward" size={15} color={colors.peach} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.matchCard}>
-          <View style={styles.matchImageWrap}>
-            <Image source={{ uri: match.image }} style={styles.matchImage} />
-            <View style={styles.compatBadge}>
-              <Ionicons name="heart" size={16} color={colors.peach} />
-              <View>
-                <Text style={styles.compatValue}>{match.compat}%</Text>
-                <Text style={styles.compatLabel}>compatível</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.heartBtn}>
-              <Ionicons name="heart-outline" size={20} color={colors.textDark} />
-            </TouchableOpacity>
-            <View style={styles.ongBadge}>
-              <Ionicons name="shield-checkmark" size={14} color={colors.peach} />
-              <Text style={styles.ongBadgeText}>{match.ong}</Text>
-            </View>
-          </View>
-          <View style={styles.matchBody}>
-            <View style={styles.matchTopRow}>
-              <View>
-                <Text style={styles.matchName}>{match.nome}</Text>
-                <Text style={styles.matchMeta}>{match.idade}  ·  {match.km}</Text>
-              </View>
-              <TouchableOpacity style={styles.matchBtn} activeOpacity={0.85} onPress={() => navigation.navigate('PetDetails')}>
-                <Text style={styles.matchBtnText}>Conhecer {match.nome}</Text>
-                <Ionicons name="chevron-forward" size={15} color="#fff" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.tagRow}>
-              {match.tags.map((t) => (
-                <View key={t.label} style={styles.tag}>
-                  <Ionicons name={t.icon} size={14} color={colors.textMuted} />
-                  <Text style={styles.tagText}>{t.label}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
+        <Destaque />
 
-        {/* Campanha */}
-        <TouchableOpacity style={styles.campaignCard} activeOpacity={0.9} onPress={() => navigation.navigate('Donation')}>
-          <View style={styles.campaignIcon}>
-            <Ionicons name="heart" size={28} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.campaignTitle}>Ajude uma nova história</Text>
-            <Text style={styles.campaignText}>A campanha de ração está em 68% da meta.</Text>
-            <View style={styles.campaignBarBg}>
-              <View style={[styles.campaignBarFill, { width: '68%' }]} />
+        {/* Campanha real da Vitrine Social */}
+        {campanha ? (
+          <TouchableOpacity style={styles.campaignCard} activeOpacity={0.9} onPress={() => navigation.navigate('Donation')}>
+            <View style={styles.campaignIcon}>
+              <Ionicons name="heart" size={28} color="#fff" />
             </View>
-            <View style={styles.campaignBtn}>
-              <Text style={styles.campaignBtnText}>Apoiar agora</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.campaignTitle}>{campanha.titulo}</Text>
+              <Text style={styles.campaignText} numberOfLines={2}>
+                {campanha.descricao || campanha.ong?.nome || 'Campanha aberta agora'}
+                {emReais(campanha.meta) ? `  ·  Meta ${emReais(campanha.meta)}` : ''}
+              </Text>
+              <View style={styles.campaignBtn}>
+                <Text style={styles.campaignBtnText}>Apoiar agora</Text>
+              </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        ) : null}
       </ScrollView>
 
-      <Questionario visible={isQuizVisible} onClose={handleCloseQuiz} onComplete={handleCompleteQuiz} />
+      <Questionario
+        visible={isQuizVisible}
+        onClose={() => { setIsQuizVisible(false); setErroQuiz(null); }}
+        onComplete={handleCompleteQuiz}
+        enviando={enviandoQuiz}
+        erro={erroQuiz}
+      />
 
       <Navbar navigation={navigation} currentRoute="Home" />
     </SafeAreaView>

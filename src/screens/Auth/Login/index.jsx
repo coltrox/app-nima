@@ -27,6 +27,10 @@ import styles from './styles';
 import authService from '../authService';
 import { BRAND } from '../../../theme';
 
+// Cargos que só existem no painel web. O backend autentica os três, mas o app
+// mobile é a superfície do tutor — ONG e desenvolvedor não têm tela aqui.
+const CARGOS_SO_WEB = ['ong', 'desenvolvedor'];
+
 const LoginScreen = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
@@ -57,15 +61,13 @@ const LoginScreen = () => {
 
         await AsyncStorage.removeItem('@nima_password');
 
-        if (userToken && wasRemembered === 'true') {
-          if (userRole === 'admin') {
-            navigation.replace('AdminDashboard');
-          } else if (userRole === 'ong') {
-            navigation.replace('OngDashboard');
-          } else {
-            navigation.replace('Home');
-          }
-          return; 
+        // O app é só do tutor: sessão de ONG/dev que sobrou de antes não vale.
+        if (userToken && wasRemembered === 'true' && !CARGOS_SO_WEB.includes(userRole)) {
+          navigation.replace('Home');
+          return;
+        }
+        if (CARGOS_SO_WEB.includes(userRole)) {
+          await AsyncStorage.multiRemove(['@nima_token', '@nima_user_role', '@nima_user_name']);
         }
 
         if (savedEmail) {
@@ -100,20 +102,12 @@ const LoginScreen = () => {
     }, 3000);
   };
 
-  const handleAuthNavigation = (role) => {
+  const handleAuthNavigation = () => {
     Animated.timing(contentOpacity, {
       toValue: 0,
       duration: 300,
       useNativeDriver: Platform.OS !== 'web',
-    }).start(() => {
-      if (role === 'admin') {
-        navigation.replace('AdminDashboard');
-      } else if (role === 'ong') {
-        navigation.replace('OngDashboard');
-      } else {
-        navigation.replace('Home');
-      }
-    });
+    }).start(() => navigation.replace('Home'));
   };
 
   const handleSimpleNavigation = (routeName) => {
@@ -129,19 +123,34 @@ const LoginScreen = () => {
     try {
       const data = await authService.login(email, password);
 
+      // Trava de superfície: o app é do tutor. Uma conta de ONG ou de
+      // desenvolvedor autentica com sucesso no backend, mas não tem nenhuma
+      // tela aqui — todas as ações dela exigem o painel web. Melhor recusar com
+      // explicação do que deixar entrar num app vazio.
+      if (CARGOS_SO_WEB.includes(data.user?.cargo)) {
+        triggerPopup(
+          'Contas de ONG e de administração usam o painel web, não o aplicativo.',
+          'error'
+        );
+        setIsLoading(false);
+        return;
+      }
+
       await AsyncStorage.setItem('@nima_token', data.token);
       await AsyncStorage.setItem('@nima_user_role', data.user.cargo);
       await AsyncStorage.setItem('@nima_remember_me', rememberMe ? 'true' : 'false');
       await AsyncStorage.setItem('@nima_user_name', data.user.nome || 'Usuário');
-      await AsyncStorage.setItem('@nima_profile_completed', data.user.perfilCompleto ? 'true' : 'false');
 
-      if (rememberMe) {
-        await AsyncStorage.setItem('@nima_email', email);
-      } else {
-        await AsyncStorage.removeItem('@nima_email');
-      }
+      // O login NÃO informa se o questionário foi respondido — quem sabe disso
+      // é GET /auth/relatorio. Limpar a chave aqui força a Home a perguntar ao
+      // backend em vez de confiar num flag da sessão anterior.
+      await AsyncStorage.removeItem('@nima_profile_completed');
 
-      handleAuthNavigation(data.user.cargo);
+      // O e-mail é dado de exibição (aparece no Perfil), não credencial:
+      // fica salvo independentemente do "lembrar-me". A senha nunca é salva.
+      await AsyncStorage.setItem('@nima_email', email);
+
+      handleAuthNavigation();
     } catch (error) {
       triggerPopup(String(error), 'error');
     } finally {

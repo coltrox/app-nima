@@ -197,4 +197,56 @@ export const styles = StyleSheet.create({
   },
   noteText: { flex: 1, fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft },
   noteLink: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
+
+  // ---- Busca (substitui os chips de causa: o backend não tem categoria) ----
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: BRAND.card,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginHorizontal: PAD,
+    marginTop: 12,
+  },
+  searchInput: { flex: 1, fontSize: 14.5, fontFamily: 'Nunito_400Regular', color: BRAND.ink, padding: 0 },
+
+  // ---- Capa da campanha (sem foto no schema: bloco de marca) ----
+  campaignCover: {
+    height: 132,
+    backgroundColor: '#EDF3FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  campaignCoverText: { fontSize: 12.5, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
+
+  // ---- PIX copia e cola ----
+  pixBox: {
+    backgroundColor: '#F7F4EC',
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+  },
+  pixLabel: { fontSize: 12, fontFamily: 'Nunito_800ExtraBold', color: BRAND.ink, textTransform: 'uppercase', letterSpacing: 0.4 },
+  pixCode: { fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft, marginTop: 8, lineHeight: 18 },
+  pixHint: { fontSize: 12, fontFamily: 'Nunito_600SemiBold', color: BRAND.blue, marginTop: 10 },
+
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  metaTexto: { fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
+
+  // ---- Card compacto das outras campanhas ----
+  otherThumb: {
+    width: 68,
+    height: 68,
+    borderRadius: 14,
+    backgroundColor: '#EDF3FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

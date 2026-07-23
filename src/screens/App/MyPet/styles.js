@@ -168,4 +168,66 @@ export const styles = StyleSheet.create({
   },
   careLabel: { fontSize: 13, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
   careStatus: { fontSize: 12, fontFamily: 'Nunito_600SemiBold' },
+
+  // ---- Troca de pet (quem adotou mais de um) ----
+  switcherRow: { flexDirection: 'row', paddingHorizontal: PAD, marginTop: 16, gap: 8 },
+  switchChip: {
+    backgroundColor: BRAND.card,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  switchChipAtivo: { backgroundColor: BRAND.blue, borderColor: BRAND.blue },
+  switchChipText: { fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
+  switchChipTextAtivo: { color: '#fff' },
+
+  // Foto ausente (`fotos` pode vir vazio).
+  petPhotoVazia: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 3,
+    borderColor: BRAND.blue,
+    backgroundColor: '#E7EEFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ---- Lista de leituras da Patinha ----
+  leituraItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.12)',
+  },
+  leituraTexto: { flex: 1 },
+  leituraLocal: { fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: '#fff' },
+  leituraData: { fontSize: 12, fontFamily: 'Nunito_400Regular', color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  tagAvisoTexto: {
+    fontSize: 13,
+    fontFamily: 'Nunito_400Regular',
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 10,
+    lineHeight: 19,
+  },
+
+  // ---- Vacinas vindas do prontuário ----
+  vacItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: BRAND.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: BRAND.border,
+    marginHorizontal: PAD,
+    marginTop: 8,
+    padding: 13,
+  },
+  vacItemNome: { flex: 1, fontSize: 14.5, fontFamily: 'Nunito_700Bold', color: BRAND.ink },
+  vacItemData: { fontSize: 12.5, fontFamily: 'Nunito_400Regular', color: BRAND.inkSoft },
 });

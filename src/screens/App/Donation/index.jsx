@@ -1,206 +1,262 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, StatusBar } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import Navbar from '../../components/NavBar/navbar';
 import Logo from '../../components/Logo';
+import { Carregando, Erro, Vazio } from '../../components/Estado';
 import { BRAND } from '../../../theme';
+import useCarregar from '../../../hooks/useCarregar';
+import vaquinhaService, { emReais, percentualDaMeta } from '../../../services/vaquinhaService';
 
-// Mock (visual-first). Depois liga em GET /api/vaquinhas (PIX copia-e-cola real da ONG).
-const CAUSAS = [
-  { key: 'todas', label: 'Todas', icon: 'grid-outline' },
-  { key: 'racao', label: 'Ração', icon: 'nutrition-outline' },
-  { key: 'tratamento', label: 'Tratamento', icon: 'medkit-outline' },
-  { key: 'abrigos', label: 'Abrigos', icon: 'home-outline' },
-];
-
-const DESTAQUE = {
-  ong: 'ONG Patinhas Livres',
-  cidade: 'Campinas, SP',
-  titulo: 'Ração e reabilitação',
-  descricao: 'Ajude 60 animais resgatados a receber alimento e cuidados.',
-  pct: 77,
-  arrecadado: 'R$ 3.850',
-  meta: 'R$ 5.000',
-  apoiadores: 142,
-  dias: 12,
-  image: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=800&auto=format&fit=crop',
-};
-
-const OUTRAS = [
-  {
-    ong: 'Abrigo Esperança',
-    titulo: 'Novo espaço de acolhimento',
-    pct: 38,
-    arrecadado: 'R$ 2.300',
-    image: 'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?q=80&w=400&auto=format&fit=crop',
-  },
-];
+// Vitrine Social ligada em GET /api/vaquinhas.
+//
+// O que o design pedia e o banco NÃO tem: foto da campanha, valor arrecadado,
+// número de apoiadores, prazo e categoria. Em vez de inventar número em tela de
+// doação, a campanha mostra só o que é verdade: ONG, título, descrição, meta e
+// o PIX copia-e-cola que a própria ONG cadastrou.
+// Ver docs/ALINHAMENTO-BACKEND.md.
 
 const DonationsScreen = ({ navigation }) => {
-  const [causa, setCausa] = useState('todas');
+  const [busca, setBusca] = useState('');
+  const [pixAberto, setPixAberto] = useState(null);
+
+  const { dados, carregando, erro, recarregar } = useCarregar(
+    () => vaquinhaService.listar(),
+    { inicial: [] }
+  );
+
+  const campanhas = dados || [];
+
+  const filtradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return campanhas;
+    return campanhas.filter((c) =>
+      `${c.titulo} ${c.descricao ?? ''} ${c.ong?.nome ?? ''}`.toLowerCase().includes(termo)
+    );
+  }, [campanhas, busca]);
+
+  const destaque = filtradas[0] ?? null;
+  const outras = filtradas.slice(1);
+  const ongsDistintas = new Set(campanhas.map((c) => c.ong_id)).size;
+
+  const Cabecalho = () => (
+    <>
+      <View style={styles.header}>
+        <Logo height={26} />
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.bellWrap}>
+            <Ionicons name="notifications-outline" size={23} color={BRAND.ink} />
+            <View style={styles.bellDot} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+            <View style={styles.avatar} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Text style={styles.title}>Vitrine Social</Text>
+      <Text style={styles.subtitle}>Apoie uma causa direto no PIX da ONG.</Text>
+    </>
+  );
+
+  if (carregando && campanhas.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <Cabecalho />
+        <Carregando texto="Buscando campanhas…" />
+        <Navbar navigation={navigation} currentRoute="Donation" />
+      </SafeAreaView>
+    );
+  }
+
+  if (erro && campanhas.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <Cabecalho />
+        <Erro mensagem={erro} onTentarDeNovo={recarregar} />
+        <Navbar navigation={navigation} currentRoute="Donation" />
+      </SafeAreaView>
+    );
+  }
+
+  const CardPix = ({ campanha }) => {
+    const aberto = pixAberto === campanha.id;
+    return (
+      <>
+        <TouchableOpacity
+          style={styles.pixBtn}
+          activeOpacity={0.85}
+          onPress={() => setPixAberto(aberto ? null : campanha.id)}
+        >
+          <Ionicons name={aberto ? 'chevron-up' : 'qr-code-outline'} size={20} color="#fff" />
+          <Text style={styles.pixBtnText}>{aberto ? 'Esconder o PIX' : 'Doar via Pix'}</Text>
+        </TouchableOpacity>
+
+        {aberto ? (
+          <View style={styles.pixBox}>
+            <Text style={styles.pixLabel}>Pix copia e cola</Text>
+            {/* selectable: dá para segurar e copiar sem depender de lib de clipboard */}
+            <Text style={styles.pixCode} selectable>{campanha.pix_copia_cola}</Text>
+            <Text style={styles.pixHint}>
+              Segure o código para copiar e cole no app do seu banco.
+              {campanha.pix_chave ? `  ·  Chave: ${campanha.pix_chave}` : ''}
+            </Text>
+          </View>
+        ) : null}
+      </>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Logo height={26} />
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellWrap}>
-              <Ionicons name="notifications-outline" size={23} color={BRAND.ink} />
-              <View style={styles.bellDot} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-              <View style={styles.avatar} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Cabecalho />
 
-        <Text style={styles.title}>Vitrine Social</Text>
-        <Text style={styles.subtitle}>Apoie uma causa e acompanhe cada transformação.</Text>
-
-        {/* Impacto da comunidade */}
+        {/* Números reais: quantas campanhas estão abertas e de quantas ONGs */}
         <View style={styles.impactCard}>
           <View style={styles.impactIcon}>
             <Ionicons name="heart" size={26} color={BRAND.blue} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.impactLabel}>Impacto da comunidade</Text>
+            <Text style={styles.impactLabel}>Campanhas abertas agora</Text>
             <View style={styles.impactRow}>
               <View>
-                <Text style={styles.impactValue}>R$ 42.680</Text>
-                <Text style={styles.impactCaption}>arrecadados este mês</Text>
+                <Text style={styles.impactValue}>{campanhas.length}</Text>
+                <Text style={styles.impactCaption}>vaquinhas ativas</Text>
               </View>
               <View style={styles.impactDivider} />
               <View>
-                <Text style={styles.impactValue}>128</Text>
-                <Text style={styles.impactCaption}>animais ajudados</Text>
+                <Text style={styles.impactValue}>{ongsDistintas}</Text>
+                <Text style={styles.impactCaption}>{ongsDistintas === 1 ? 'ONG' : 'ONGs'}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Filtro por causa */}
-        <Text style={styles.chipsLabel}>Encontre uma causa</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
-          {CAUSAS.map((c) => {
-            const ativo = causa === c.key;
-            return (
-              <TouchableOpacity
-                key={c.key}
-                style={[styles.chip, ativo && styles.chipActive]}
-                onPress={() => setCausa(c.key)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name={c.icon} size={16} color={ativo ? '#fff' : BRAND.ink} />
-                <Text style={[styles.chipText, ativo && styles.chipTextActive]}>{c.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        {/* Campanha em destaque */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Campanha em destaque</Text>
-          <TouchableOpacity><Text style={styles.sectionLink}>Ver todas</Text></TouchableOpacity>
+        <View style={styles.searchRow}>
+          <Ionicons name="search" size={19} color={BRAND.inkSoft} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar campanha ou ONG"
+            placeholderTextColor={BRAND.inkSoft}
+            value={busca}
+            onChangeText={setBusca}
+          />
+          {busca ? (
+            <TouchableOpacity onPress={() => setBusca('')}>
+              <Ionicons name="close-circle" size={19} color={BRAND.inkSoft} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
-        <View style={styles.campaignCard}>
-          <View style={styles.campaignImageWrap}>
-            <Image source={{ uri: DESTAQUE.image }} style={styles.campaignImage} />
-            <TouchableOpacity style={styles.heartBtn}>
-              <Ionicons name="heart-outline" size={19} color={BRAND.ink} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.campaignBody}>
-            <View style={styles.ongRow}>
-              <Ionicons name="shield-checkmark" size={16} color={BRAND.blue} />
-              <Text style={styles.ongName}>{DESTAQUE.ong}</Text>
-            </View>
-            <View style={styles.ongLocal}>
-              <Ionicons name="location-outline" size={13} color={BRAND.inkSoft} />
-              <Text style={styles.ongLocalText}>{DESTAQUE.cidade}</Text>
-            </View>
-
-            <Text style={styles.campaignTitle}>{DESTAQUE.titulo}</Text>
-            <Text style={styles.campaignDesc}>{DESTAQUE.descricao}</Text>
-
-            <View style={styles.barRow}>
-              <View style={styles.barBg}>
-                <View style={[styles.barFill, { width: `${DESTAQUE.pct}%` }]} />
-              </View>
-              <Text style={styles.barPct}>{DESTAQUE.pct}%</Text>
+        {!destaque ? (
+          <Vazio
+            icone="heart-outline"
+            titulo={busca ? 'Nenhuma campanha encontrada' : 'Nenhuma campanha aberta'}
+            texto={
+              busca
+                ? 'Tente outro termo de busca.'
+                : 'Assim que uma ONG publicar uma vaquinha, ela aparece aqui.'
+            }
+          />
+        ) : (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Campanha em destaque</Text>
             </View>
 
-            <View style={styles.valuesRow}>
-              <View>
-                <Text style={styles.raised}>{DESTAQUE.arrecadado}</Text>
-                <Text style={styles.raisedLabel}>arrecadados</Text>
+            <View style={styles.campaignCard}>
+              <View style={styles.campaignCover}>
+                <Ionicons name="heart" size={34} color={BRAND.blue} />
+                <Text style={styles.campaignCoverText}>Vaquinha verificada</Text>
               </View>
-              <View>
-                <Text style={styles.metaLabel}>Meta</Text>
-                <Text style={styles.metaValue}>{DESTAQUE.meta}</Text>
-              </View>
-            </View>
 
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons name="people-outline" size={15} color={BRAND.inkSoft} />
-                <Text style={styles.statText}>{DESTAQUE.apoiadores} apoiadores</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={15} color={BRAND.inkSoft} />
-                <Text style={styles.statText}>{DESTAQUE.dias} dias restantes</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.pixBtn} activeOpacity={0.85}>
-              <Ionicons name="qr-code-outline" size={20} color="#fff" />
-              <Text style={styles.pixBtnText}>Doar via Pix</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.contasLink}>
-              <Ionicons name="shield-checkmark-outline" size={16} color={BRAND.blue} />
-              <Text style={styles.contasText}>Ver prestação de contas</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Outras causas */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Outras causas</Text>
-          <TouchableOpacity><Text style={styles.sectionLink}>Ver todas</Text></TouchableOpacity>
-        </View>
-
-        {OUTRAS.map((o) => (
-          <View key={o.titulo} style={styles.otherCard}>
-            <Image source={{ uri: o.image }} style={styles.otherImage} />
-            <View style={{ flex: 1 }}>
-              <View style={styles.otherOng}>
-                <Ionicons name="shield-checkmark" size={13} color={BRAND.blue} />
-                <Text style={styles.otherOngText}>{o.ong}</Text>
-              </View>
-              <Text style={styles.otherTitle}>{o.titulo}</Text>
-              <View style={styles.otherBarRow}>
-                <View style={[styles.barBg, { flex: 1 }]}>
-                  <View style={[styles.barFill, { width: `${o.pct}%` }]} />
+              <View style={styles.campaignBody}>
+                <View style={styles.ongRow}>
+                  <Ionicons name="shield-checkmark" size={16} color={BRAND.blue} />
+                  <Text style={styles.ongName}>{destaque.ong?.nome ?? 'ONG parceira'}</Text>
                 </View>
-                <Text style={styles.otherPct}>{o.pct}% da meta</Text>
-              </View>
-              <Text style={styles.otherRaised}>{o.arrecadado}</Text>
-            </View>
-            <TouchableOpacity style={styles.apoiarBtn} activeOpacity={0.85}>
-              <Text style={styles.apoiarBtnText}>Apoiar</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
 
-        {/* Nota de transparência */}
+                <Text style={styles.campaignTitle}>{destaque.titulo}</Text>
+                {destaque.descricao ? (
+                  <Text style={styles.campaignDesc}>{destaque.descricao}</Text>
+                ) : null}
+
+                {/* A barra só aparece se houver progresso real para mostrar. */}
+                {percentualDaMeta(destaque) != null ? (
+                  <View style={styles.barRow}>
+                    <View style={styles.barBg}>
+                      <View style={[styles.barFill, { width: `${percentualDaMeta(destaque)}%` }]} />
+                    </View>
+                    <Text style={styles.barPct}>{percentualDaMeta(destaque)}%</Text>
+                  </View>
+                ) : null}
+
+                {emReais(destaque.meta) ? (
+                  <View style={styles.metaRow}>
+                    <Ionicons name="flag-outline" size={16} color={BRAND.inkSoft} />
+                    <Text style={styles.metaTexto}>Meta: {emReais(destaque.meta)}</Text>
+                  </View>
+                ) : null}
+
+                <CardPix campanha={destaque} />
+              </View>
+            </View>
+          </>
+        )}
+
+        {outras.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Outras causas</Text>
+            </View>
+
+            {outras.map((c) => (
+              <View key={c.id} style={[styles.otherCard, { marginBottom: 10 }]}>
+                <View style={styles.otherThumb}>
+                  <Ionicons name="paw" size={26} color={BRAND.blue} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.otherOng}>
+                    <Ionicons name="shield-checkmark" size={13} color={BRAND.blue} />
+                    <Text style={styles.otherOngText}>{c.ong?.nome ?? 'ONG parceira'}</Text>
+                  </View>
+                  <Text style={styles.otherTitle}>{c.titulo}</Text>
+                  {emReais(c.meta) ? (
+                    <Text style={styles.otherRaised}>Meta {emReais(c.meta)}</Text>
+                  ) : null}
+                </View>
+                <TouchableOpacity
+                  style={styles.apoiarBtn}
+                  activeOpacity={0.85}
+                  onPress={() => setPixAberto(pixAberto === c.id ? null : c.id)}
+                >
+                  <Text style={styles.apoiarBtnText}>{pixAberto === c.id ? 'Fechar' : 'Apoiar'}</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {outras
+              .filter((c) => pixAberto === c.id)
+              .map((c) => (
+                <View key={`pix-${c.id}`} style={[styles.pixBox, { marginHorizontal: 20, marginTop: 0 }]}>
+                  <Text style={styles.pixLabel}>Pix de {c.ong?.nome ?? 'ONG parceira'}</Text>
+                  <Text style={styles.pixCode} selectable>{c.pix_copia_cola}</Text>
+                  <Text style={styles.pixHint}>Segure o código para copiar.</Text>
+                </View>
+              ))}
+          </>
+        )}
+
         <View style={styles.noteCard}>
           <Ionicons name="shield-checkmark" size={20} color={BRAND.blue} />
-          <Text style={styles.noteText}>Doações verificadas e acompanhamento transparente.</Text>
-          <TouchableOpacity><Text style={styles.noteLink}>Saiba mais</Text></TouchableOpacity>
+          <Text style={styles.noteText}>
+            O PIX é da própria ONG, cadastrado por ela no painel. A Nima não intermedia o dinheiro.
+          </Text>
         </View>
       </ScrollView>
 
