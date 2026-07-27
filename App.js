@@ -11,6 +11,11 @@ import {
   Nunito_700Bold,
   Nunito_800ExtraBold,
 } from '@expo-google-fonts/nunito';
+// As fontes de ícone precisam ser pré-carregadas com a marca. No nativo elas
+// chegam sozinhas um instante depois; no web/preview renderizam como quadradinho
+// vazio (tofu) até carregar. Pré-carregando aqui, a tela só aparece com todos
+// os glyphs prontos — os três conjuntos que o app usa.
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 
 // --- Autenticação ---
 import Login from './src/screens/Auth/Login/index';
@@ -55,6 +60,9 @@ export default function App() {
     Nunito_600SemiBold,
     Nunito_700Bold,
     Nunito_800ExtraBold,
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
+    ...Feather.font,
   });
 
   useEffect(() => {
