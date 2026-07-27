@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, SafeAreaView, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -25,9 +25,20 @@ const MatchScreen = ({ navigation }) => {
   const [busca, setBusca] = useState('');
   const [especie, setEspecie] = useState('todos');
 
-  const { dados, carregando, erro, recarregar } = useCarregar(() => animalService.feed(), {
-    inicial: { lista: [], personalizado: false, aviso: null },
-  });
+  // "Ver de longe": inclui pets de fora do raio de 50 km. O ref carrega o valor
+  // atual para dentro do loader do useCarregar (que é fixado na criação).
+  const [verDeLonge, setVerDeLonge] = useState(false);
+  const verDeLongeRef = useRef(false);
+  const { dados, carregando, erro, recarregar } = useCarregar(
+    () => animalService.feed({ todos: verDeLongeRef.current }),
+    { inicial: { lista: [], personalizado: false, aviso: null } }
+  );
+  const alternarLonge = () => {
+    const novo = !verDeLonge;
+    setVerDeLonge(novo);
+    verDeLongeRef.current = novo;
+    recarregar();
+  };
 
   // Favoritos moram no aparelho (não há tabela no backend). Recarrega ao voltar
   // o foco porque o coração também pode ser alterado na ficha do pet.
@@ -106,6 +117,30 @@ const MatchScreen = ({ navigation }) => {
           })}
         </View>
 
+        {/* Ver de longe — só faz sentido no feed personalizado (com raio). */}
+        {personalizado ? (
+          <TouchableOpacity
+            onPress={alternarLonge}
+            activeOpacity={0.85}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+              marginHorizontal: PAD, marginTop: 12, paddingVertical: 8, paddingHorizontal: 12,
+              borderRadius: 12, borderWidth: 1.5,
+              borderColor: verDeLonge ? BRAND.blue : BRAND.border,
+              backgroundColor: verDeLonge ? '#EDF3FE' : BRAND.card,
+            }}
+          >
+            <Ionicons
+              name={verDeLonge ? 'earth' : 'location'}
+              size={16}
+              color={verDeLonge ? BRAND.blue : BRAND.inkSoft}
+            />
+            <Text style={{ fontSize: 13, fontFamily: 'Nunito_700Bold', color: verDeLonge ? BRAND.blue : BRAND.ink }}>
+              {verDeLonge ? 'Mostrando pets de todas as regiões' : 'Ver pets de outras regiões'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
         {aviso ? <Aviso texto={aviso} /> : null}
 
         {carregando && lista.length === 0 ? (
@@ -169,6 +204,14 @@ const MatchScreen = ({ navigation }) => {
                     <Text style={t.petMeta} numberOfLines={1}>
                       {[a.porte, a.especie].filter(Boolean).join(' · ')}
                     </Text>
+                    {a.distancia_km != null && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 }}>
+                        <Ionicons name="location-outline" size={12} color={BRAND.blue} />
+                        <Text style={[t.petMeta, { color: BRAND.blue }]} numberOfLines={1}>
+                          {a.distancia_km === 0 ? 'pertinho' : `${a.distancia_km} km`}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               );
