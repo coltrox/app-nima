@@ -10,18 +10,25 @@ import Logo from '../Logo';
 import Anel from '../Anel';
 import Campo from '../Campo';
 
-// Questionário de afinidade.
+// Questionário de afinidade — 20 perguntas, UMA POR TELA.
 //
-// São 20 perguntas no backend, mas o fluxo é dividido: 5 ETAPAS ESSENCIAIS,
-// uma por tela, e as outras 15 num bloco opcional que o tutor pode abrir ou
-// deixar para depois.
+// Fluxo (decisão do usuário, 2026-07-23):
+//   1. as 5 ESSENCIAIS primeiro, com os cards ilustrados e a trilha;
+//   2. logo em seguida as 15 EXTRAS, num layout mais simples (Sim/Não,
+//      seleção ou texto);
+//   3. TODAS obrigatórias — o botão só habilita com a pergunta respondida;
+//   4. o botão "Próxima pergunta" fica logo abaixo do card, ANTES do painel
+//      "perfil ganhando forma", para a navegação fluir sem rolagem.
+//
+// Única exceção à obrigatoriedade: a pergunta 9 (faixa etária das crianças)
+// só entra na sequência se a 8 for "Sim"; sem crianças ela é pulada e enviada
+// como "Não se aplica".
 //
 // As chaves ('1'..'20') são o contrato com o backend: questionarioController
-// lê `incomingAnswers['1']` … `['20']` e mapeia para as colunas de
-// `questionarios`. Todas as colunas são NOT NULL, então o que não for
-// respondido é enviado como "Não informado" — nunca vazio.
+// lê `incomingAnswers['1']` … `['20']` e mapeia para as colunas NOT NULL de
+// `questionarios`.
 
-const ETAPAS = [
+const ESSENCIAIS = [
   {
     id: 1,
     rotulo: 'Rotina',
@@ -86,8 +93,8 @@ const ETAPAS = [
   },
 ];
 
-// As 15 restantes. Ficam num bloco recolhível, sem travar o envio.
-const OPCIONAIS = [
+// As 15 restantes, agora obrigatórias e uma por tela (layout simples).
+const EXTRAS = [
   { id: 4, secao: 'Perfil', pergunta: 'Quem será o principal responsável?', tipo: 'texto' },
   { id: 6, secao: 'Ambiente', pergunta: 'O ambiente é seguro contra fugas?', opcoes: ['Sim', 'Não'] },
   { id: 7, secao: 'Ambiente', pergunta: 'O animal terá acesso ao interior da casa?', opcoes: ['Sim', 'Não'] },
@@ -105,7 +112,14 @@ const OPCIONAIS = [
   { id: 20, secao: 'Compromisso', pergunta: 'Está ciente da responsabilidade (10–15 anos)?', opcoes: ['Sim', 'Não'] },
 ];
 
-const TOTAL_PERGUNTAS = ETAPAS.length + OPCIONAIS.length; // 20
+// Sequência completa: essenciais primeiro, extras depois. `tipo` distingue o
+// layout (cartão ilustrado x linha simples x campo de texto).
+const TODAS = [
+  ...ESSENCIAIS.map((e) => ({ ...e, tipo: 'essencial' })),
+  ...EXTRAS.map((o) => ({ ...o, tipo: o.tipo === 'texto' ? 'texto' : 'selecao' })),
+];
+
+const preenchida = (v) => v !== undefined && String(v).trim() !== '';
 
 /**
  * @param {boolean}  visible
@@ -115,69 +129,77 @@ const TOTAL_PERGUNTAS = ETAPAS.length + OPCIONAIS.length; // 20
  * @param {string}   erro
  */
 const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = null }) => {
-  const [etapa, setEtapa] = useState(0);
+  const [pos, setPos] = useState(0);
   const [respostas, setRespostas] = useState({});
-  const [abrirOpcionais, setAbrirOpcionais] = useState(false);
 
-  const atual = ETAPAS[etapa];
-  const ehUltima = etapa === ETAPAS.length - 1;
-  const pctEtapas = Math.round(((etapa + 1) / ETAPAS.length) * 100);
+  // A pergunta 9 só entra se houver crianças. `sequencia` é a lista realmente
+  // percorrida — recalculada quando a resposta da 8 muda.
+  const sequencia = useMemo(
+    () => TODAS.filter((q) => !q.dependeDe || respostas[q.dependeDe.id] === q.dependeDe.valor),
+    [respostas]
+  );
 
-  // O anel conta TODAS as 20 — é o progresso real do perfil, não o da etapa.
+  const total = sequencia.length; // 20, ou 19 quando não há crianças
+  const posSegura = Math.min(pos, total - 1);
+  const atual = sequencia[posSegura];
+  const ehUltima = posSegura >= total - 1;
+  const pct = Math.round(((posSegura + 1) / total) * 100);
+  const faltam = total - posSegura - 1;
+
+  // O anel é o progresso REAL do perfil: respondidas / total aplicável.
   const pctPerfil = useMemo(() => {
-    const preenchidas = Object.values(respostas).filter((v) => v !== undefined && v !== '').length;
-    return Math.round((preenchidas / TOTAL_PERGUNTAS) * 100);
-  }, [respostas]);
+    const feitas = sequencia.filter((q) => preenchida(respostas[q.id])).length;
+    return Math.round((feitas / total) * 100);
+  }, [respostas, sequencia, total]);
 
   const responder = (id, valor) => setRespostas((r) => ({ ...r, [id]: valor }));
 
+  const respondidaAtual = preenchida(respostas[atual.id]);
+  const podeAvancar = respondidaAtual && !enviando;
+
   const finalizar = () => {
-    // Todas as 20 chaves, sempre. Coluna NOT NULL não aceita string vazia com
-    // sentido de "pulou", então o não respondido vira "Não informado".
+    // Todas as 20 chaves. Com o gate de obrigatoriedade, todas já vêm
+    // preenchidas; a 9 vira "Não se aplica" quando não há crianças. O
+    // fallback "Não informado" é só um cinto de segurança — não deve ocorrer.
     const payload = {};
-    for (const e of ETAPAS) payload[e.id] = respostas[e.id] ?? 'Não informado';
-    for (const o of OPCIONAIS) {
-      const bruto = respostas[o.id];
-      const semCriancas = o.id === 9 && respostas[8] === 'Não';
-      payload[o.id] = semCriancas ? 'Não se aplica' : (bruto && String(bruto).trim() ? bruto : 'Não informado');
+    for (const q of TODAS) {
+      if (q.id === 9 && respostas[8] !== 'Sim') { payload[9] = 'Não se aplica'; continue; }
+      const v = respostas[q.id];
+      payload[q.id] = preenchida(v) ? v : 'Não informado';
     }
     onComplete(payload);
   };
 
   const avancar = () => {
-    if (enviando) return;
-    if (!ehUltima) setEtapa((e) => e + 1);
+    if (enviando || !podeAvancar) return;
+    if (!ehUltima) setPos(posSegura + 1);
     else finalizar();
   };
 
-  const respondida = respostas[atual.id] !== undefined && respostas[atual.id] !== '';
-  const podeAvancar = respondida && !enviando;
-  const faltam = ETAPAS.length - etapa - 1;
+  const voltar = () => {
+    if (enviando) return;
+    if (posSegura > 0) setPos(posSegura - 1);
+    else onClose();
+  };
 
-  // ---- Trilha de 5 etapas ----
+  // ---- Trilha das 5 essenciais (só aparece na fase essencial) ----
   const trilha = () => (
     <View style={styles.trilha}>
-      {ETAPAS.map((e, i) => {
-        const concluida = respostas[e.id] !== undefined && respostas[e.id] !== '' && i < etapa;
-        const atualEtapa = i === etapa;
+      {ESSENCIAIS.map((e, i) => {
+        const atualEtapa = i === posSegura;
+        const concluida = preenchida(respostas[e.id]) && i < posSegura;
         return (
           <View key={e.id} style={styles.trilhaItem}>
-            {/* Ligação pontilhada até o próximo círculo */}
-            {i < ETAPAS.length - 1 ? (
+            {i < ESSENCIAIS.length - 1 ? (
               <View style={[styles.trilhaLigacao, { left: '60%', right: '-40%' }]} />
             ) : null}
             <TouchableOpacity
               activeOpacity={0.85}
-              // Só deixa voltar para etapa já vista — pular para frente sem
-              // responder deixaria buracos no meio do fluxo.
-              onPress={() => i <= etapa && setEtapa(i)}
+              // Só volta para uma essencial já vista; pular à frente deixaria buracos.
+              onPress={() => i <= posSegura && setPos(i)}
             >
               <View style={[styles.trilhaCirculo, atualEtapa && styles.trilhaCirculoAtual]}>
-                <MaterialCommunityIcons
-                  name={e.icone}
-                  size={24}
-                  color={atualEtapa ? '#fff' : BRAND.ink}
-                />
+                <MaterialCommunityIcons name={e.icone} size={24} color={atualEtapa ? '#fff' : BRAND.ink} />
               </View>
               {concluida ? (
                 <View style={styles.trilhaCheck}>
@@ -194,8 +216,16 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
     </View>
   );
 
-  // ---- Opções em cartão (3 por linha) ----
-  const opcoes = () => (
+  // ---- Pill da seção (fase das 15) ----
+  const secaoTag = () => (
+    <View style={styles.secaoTag}>
+      <Ionicons name="pricetag-outline" size={15} color={BRAND.blue} />
+      <Text style={styles.secaoTagTexto}>{atual.secao}</Text>
+    </View>
+  );
+
+  // ---- Opções em cartão (as 5 essenciais) ----
+  const cartoesEssencial = () => (
     <View style={styles.opcoesLinha}>
       {atual.opcoes.map((o) => {
         const ativa = respostas[atual.id] === o.valor;
@@ -224,88 +254,83 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
     </View>
   );
 
-  // ---- Resumo das etapas já respondidas ----
-  const resumos = () =>
-    ETAPAS.slice(0, etapa)
-      .filter((e) => respostas[e.id])
-      .map((e) => (
-        <View key={e.id} style={styles.resumo}>
-          <View style={styles.resumoIcone}>
-            <Ionicons name="checkmark" size={18} color={BRAND.success} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.resumoTitulo}>{e.rotulo} concluída</Text>
-            <Text style={styles.resumoValor}>{respostas[e.id]}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.resumoEditar}
-            onPress={() => setEtapa(ETAPAS.findIndex((x) => x.id === e.id))}
-          >
-            <Ionicons name="create-outline" size={16} color={BRAND.blue} />
-            <Text style={styles.resumoEditarTexto}>Editar</Text>
-          </TouchableOpacity>
+  // ---- Linhas de seleção ou campo de texto (as 15) ----
+  const controleExtra = () => {
+    if (atual.tipo === 'texto') {
+      return (
+        <View style={{ marginTop: 14 }}>
+          <Campo
+            placeholder="Escreva aqui…"
+            value={respostas[atual.id] || ''}
+            onChangeText={(txt) => responder(atual.id, txt)}
+            multilinha
+          />
         </View>
-      ));
-
-  // ---- Bloco das outras 15 ----
-  const opcionais = () => (
-    <View style={styles.opcionais}>
-      <TouchableOpacity
-        style={styles.opcionaisTopo}
-        activeOpacity={0.85}
-        onPress={() => setAbrirOpcionais((v) => !v)}
-      >
-        <View style={styles.opcionaisIcone}>
-          <Ionicons name="list-outline" size={19} color={BRAND.blue} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.opcionaisTitulo}>Outras {OPCIONAIS.length} perguntas</Text>
-          <Text style={styles.opcionaisTexto}>Preferências, experiência, família e responsabilidade</Text>
-        </View>
-        <View style={styles.selo}>
-          <Text style={styles.seloTexto}>Opcional agora</Text>
-        </View>
-        <Ionicons name={abrirOpcionais ? 'chevron-up' : 'chevron-down'} size={20} color={BRAND.inkSoft} />
-      </TouchableOpacity>
-
-      {abrirOpcionais
-        ? OPCIONAIS
-            // A faixa etária das crianças só faz sentido se houver crianças.
-            .filter((o) => !o.dependeDe || respostas[o.dependeDe.id] === o.dependeDe.valor)
-            .map((o) => (
-              <View key={o.id} style={styles.opcionalItem}>
-                <Text style={styles.opcionalPergunta}>{o.pergunta}</Text>
-
-                {o.tipo === 'texto' ? (
-                  <Campo
-                    placeholder="Escreva aqui…"
-                    value={respostas[o.id] || ''}
-                    onChangeText={(txt) => responder(o.id, txt)}
-                    multilinha
-                  />
-                ) : (
-                  o.opcoes.map((valor) => {
-                    const ativa = respostas[o.id] === valor;
-                    return (
-                      <TouchableOpacity
-                        key={valor}
-                        style={[styles.opcaoLinha, ativa && styles.opcaoLinhaAtiva]}
-                        activeOpacity={0.85}
-                        onPress={() => responder(o.id, valor)}
-                      >
-                        <Text style={[styles.opcaoLinhaTexto, ativa && styles.opcaoLinhaTextoAtivo]}>
-                          {valor}
-                        </Text>
-                        <View style={[styles.radio, ativa && styles.radioAtivo]}>
-                          {ativa ? <View style={styles.radioDentro} /> : null}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })
-                )}
+      );
+    }
+    return (
+      <View style={{ marginTop: 6 }}>
+        {atual.opcoes.map((valor) => {
+          const ativa = respostas[atual.id] === valor;
+          return (
+            <TouchableOpacity
+              key={valor}
+              style={[styles.opcaoLinha, ativa && styles.opcaoLinhaAtiva]}
+              activeOpacity={0.85}
+              onPress={() => responder(atual.id, valor)}
+            >
+              <Text style={[styles.opcaoLinhaTexto, ativa && styles.opcaoLinhaTextoAtivo]}>{valor}</Text>
+              <View style={[styles.radio, ativa && styles.radioAtivo]}>
+                {ativa ? <View style={styles.radioDentro} /> : null}
               </View>
-            ))
-        : null}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
+
+  // ---- Card da pergunta atual ----
+  const cardPergunta = () => (
+    <View style={styles.cardPergunta}>
+      <Text style={styles.perguntaNumero}>PERGUNTA {String(posSegura + 1).padStart(2, '0')}</Text>
+      <Text style={styles.perguntaTexto}>{atual.pergunta}</Text>
+      {atual.dica ? <Text style={styles.perguntaDica}>{atual.dica}</Text> : null}
+
+      {atual.tipo === 'essencial' ? cartoesEssencial() : controleExtra()}
+
+      {atual.tipo === 'essencial' ? (
+        <Text style={styles.rodapeCard}>Você poderá ajustar esta resposta depois.</Text>
+      ) : null}
+    </View>
+  );
+
+  // ---- Painel navy do progresso (agora ABAIXO do botão) ----
+  const painel = () => (
+    <View style={styles.painel}>
+      <Text style={styles.painelTitulo}>Seu perfil está ganhando forma</Text>
+      <View style={styles.painelCorpo}>
+        <Anel pct={pctPerfil} size={112} espessura={11} cor="#3B82F6">
+          <Text style={{ fontSize: 25, fontFamily: 'Nunito_800ExtraBold', color: '#fff' }}>{pctPerfil}%</Text>
+          <Ionicons name="paw" size={15} color="rgba(255,255,255,0.7)" />
+        </Anel>
+
+        <View style={styles.painelChips}>
+          {ESSENCIAIS.filter((e) => preenchida(respostas[e.id]))
+            .slice(-3)
+            .map((e) => (
+              <View key={e.id} style={styles.chip}>
+                <MaterialCommunityIcons name={e.icone} size={15} color="#8FB4F5" />
+                <Text style={styles.chipTexto} numberOfLines={1}>{respostas[e.id]}</Text>
+              </View>
+            ))}
+          {Object.keys(respostas).length === 0 ? (
+            <Text style={styles.painelNota}>
+              Responda a primeira pergunta para começar a montar seu perfil.
+            </Text>
+          ) : null}
+        </View>
+      </View>
     </View>
   );
 
@@ -335,62 +360,17 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
             </View>
 
             <View style={styles.etapaLinha}>
-              <Text style={styles.etapaTexto}>Etapa {etapa + 1} de {ETAPAS.length}</Text>
-              <Text style={styles.etapaPct}>{pctEtapas}%</Text>
+              <Text style={styles.etapaTexto}>Pergunta {posSegura + 1} de {total}</Text>
+              <Text style={styles.etapaPct}>{pct}%</Text>
             </View>
             <View style={styles.barraBg}>
-              <View style={[styles.barraFill, { width: `${pctEtapas}%` }]} />
+              <View style={[styles.barraFill, { width: `${pct}%` }]} />
             </View>
 
-            {trilha()}
+            {/* Trilha nas 5 essenciais; pill de seção nas 15 extras. */}
+            {atual.tipo === 'essencial' ? trilha() : secaoTag()}
 
-            <View style={styles.cardPergunta}>
-              <Text style={styles.perguntaNumero}>
-                PERGUNTA {String(etapa + 1).padStart(2, '0')}
-              </Text>
-              <Text style={styles.perguntaTexto}>{atual.pergunta}</Text>
-              <Text style={styles.perguntaDica}>{atual.dica}</Text>
-              {opcoes()}
-              <Text style={styles.rodapeCard}>Você poderá ajustar esta resposta depois.</Text>
-            </View>
-
-            <View style={styles.painel}>
-              <Text style={styles.painelTitulo}>Seu perfil está ganhando forma</Text>
-              <View style={styles.painelCorpo}>
-                <Anel pct={pctPerfil} size={112} espessura={11} cor="#3B82F6">
-                  <Text style={{ fontSize: 25, fontFamily: 'Nunito_800ExtraBold', color: '#fff' }}>
-                    {pctPerfil}%
-                  </Text>
-                  <Ionicons name="paw" size={15} color="rgba(255,255,255,0.7)" />
-                </Anel>
-
-                <View style={styles.painelChips}>
-                  {ETAPAS.filter((e) => respostas[e.id])
-                    .slice(-3)
-                    .map((e) => (
-                      <View key={e.id} style={styles.chip}>
-                        <MaterialCommunityIcons name={e.icone} size={15} color="#8FB4F5" />
-                        <Text style={styles.chipTexto} numberOfLines={1}>{respostas[e.id]}</Text>
-                      </View>
-                    ))}
-                  {Object.keys(respostas).length === 0 ? (
-                    <Text style={styles.painelNota}>
-                      Responda a primeira etapa para começar a montar seu perfil.
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-            </View>
-
-            {resumos()}
-            {opcionais()}
-
-            <View style={styles.privacidade}>
-              <Ionicons name="shield-checkmark-outline" size={18} color={BRAND.blue} />
-              <Text style={styles.privacidadeTexto}>
-                Suas respostas são privadas e usadas apenas para melhorar os seus matches.
-              </Text>
-            </View>
+            {cardPergunta()}
 
             {erro ? (
               <View style={styles.erroBox}>
@@ -399,15 +379,7 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
               </View>
             ) : null}
 
-            <View style={styles.faltam}>
-              <Ionicons name="paw" size={15} color={BRAND.inkSoft} />
-              <Text style={styles.faltamTexto}>
-                {faltam > 0
-                  ? `Faltam apenas ${faltam} ${faltam === 1 ? 'etapa essencial' : 'etapas essenciais'}.`
-                  : 'Última etapa essencial.'}
-              </Text>
-            </View>
-
+            {/* Botão logo abaixo do card, ANTES do painel — navegação fluida. */}
             <View style={styles.acoes}>
               <TouchableOpacity
                 style={[styles.botao, !podeAvancar && styles.botaoDesabilitado]}
@@ -422,21 +394,32 @@ const Questionario = ({ visible, onClose, onComplete, enviando = false, erro = n
                     <Text style={[styles.botaoTexto, !podeAvancar && styles.botaoTextoDesabilitado]}>
                       {ehUltima ? 'Concluir questionário' : 'Próxima pergunta'}
                     </Text>
-                    <Ionicons
-                      name="arrow-forward"
-                      size={20}
-                      color={podeAvancar ? '#fff' : '#8A8577'}
-                    />
+                    <Ionicons name="arrow-forward" size={20} color={podeAvancar ? '#fff' : '#8A8577'} />
                   </>
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => (etapa > 0 ? setEtapa((e) => e - 1) : onClose())}
-                disabled={enviando}
-              >
+              <TouchableOpacity onPress={voltar} disabled={enviando}>
                 <Text style={styles.voltarTexto}>Voltar</Text>
               </TouchableOpacity>
+            </View>
+
+            <View style={styles.faltam}>
+              <Ionicons name="paw" size={15} color={BRAND.inkSoft} />
+              <Text style={styles.faltamTexto}>
+                {faltam > 0
+                  ? `Faltam ${faltam} ${faltam === 1 ? 'pergunta' : 'perguntas'}.`
+                  : 'Última pergunta.'}
+              </Text>
+            </View>
+
+            {painel()}
+
+            <View style={styles.privacidade}>
+              <Ionicons name="shield-checkmark-outline" size={18} color={BRAND.blue} />
+              <Text style={styles.privacidadeTexto}>
+                Suas respostas são privadas e usadas apenas para melhorar os seus matches.
+              </Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
