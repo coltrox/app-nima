@@ -185,7 +185,7 @@ const ACOES = [
 ];
 
 // --- COMPONENTE PRINCIPAL HOME ---
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isQuizVisible, setIsQuizVisible] = useState(false);
   const [enviandoQuiz, setEnviandoQuiz] = useState(false);
@@ -258,6 +258,15 @@ const HomeScreen = ({ navigation }) => {
       loadUserData();
     }, [])
   );
+
+  // O Perfil manda "abrir o questionário direto" via param. Abre e limpa o
+  // param, senão reabriria a cada foco da Home.
+  useEffect(() => {
+    if (route?.params?.abrirQuestionario) {
+      setIsQuizVisible(true);
+      navigation.setParams({ abrirQuestionario: false });
+    }
+  }, [route?.params?.abrirQuestionario]);
 
   useEffect(() => {
     const checkTutorialStatus = async () => {

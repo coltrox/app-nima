@@ -43,13 +43,14 @@ const CHAVES_SESSAO = [
 const ProfileScreen = ({ navigation }) => {
   const dados = useCarregar(
     async () => {
-      const [perfil, respondeu, meus, adotados, favIds, vitrine] = await Promise.all([
+      const [perfil, respondeu, meus, adotados, favoritados] = await Promise.all([
         perfilService.obter().catch(() => null),
         questionarioService.jaRespondeu().catch(() => false),
         animalService.meus().catch(() => []),
         solicitacaoService.meusPets().catch(() => []),
-        favoritos.listar(),
-        animalService.listarTodos().catch(() => []),
+        // Vem completo do backend (019), inclusive pets já adotados — não
+        // precisa mais resolver os ids contra a vitrine.
+        favoritos.listarPets(),
       ]);
 
       // Desduplica: um pet adotado e já transferido aparece nas duas listas.
@@ -61,8 +62,7 @@ const ProfileScreen = ({ navigation }) => {
         pets.push(p);
       }
 
-      const favoritados = (vitrine || []).filter((a) => favIds.includes(String(a.id)));
-      return { perfil, respondeu, pets, favoritados, totalFavoritos: favIds.length };
+      return { perfil, respondeu, pets, favoritados, totalFavoritos: favoritados.length };
     },
     { inicial: null }
   );
@@ -174,11 +174,13 @@ const ProfileScreen = ({ navigation }) => {
     },
     {
       title: 'Questionário de afinidade',
-      sub: respondeu ? 'Respondido' : 'Ainda não respondido',
+      sub: respondeu ? 'Respondido' : 'Toque para responder agora',
       icon: 'sparkles-outline',
       color: '#FF9500',
       badge: respondeu ? 'Concluído' : undefined,
-      onPress: () => navigation.navigate('Home'),
+      // Abre o questionário direto (a tela dele vive na Home). O param é lido
+      // no foco da Home e some em seguida, para não reabrir sozinho.
+      onPress: () => navigation.navigate('Home', { abrirQuestionario: true }),
     },
     {
       title: 'Configurações',
@@ -331,7 +333,12 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.statLabel}>Favoritos</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{respondeu ? '01' : '00'}</Text>
+            {/* Respondido não é uma contagem: vira um check confirmando. */}
+            {respondeu ? (
+              <Ionicons name="checkmark-circle" size={30} color={BRAND.success} />
+            ) : (
+              <Text style={styles.statNumber}>00</Text>
+            )}
             <Text style={styles.statLabel}>Questionário</Text>
           </View>
         </View>
