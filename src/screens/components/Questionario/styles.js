@@ -124,6 +124,22 @@ export const styles = StyleSheet.create({
     borderColor: '#C9D2DE',
   },
 
+  // ---- Pill de seção (fase das 15 perguntas) ----
+  // Substitui a trilha quando o fluxo passa das 5 essenciais para as extras:
+  // a trilha só faz sentido para as 5, então nas outras mostramos a seção atual.
+  secaoTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'center',
+    backgroundColor: '#EDF3FE',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginTop: 22,
+  },
+  secaoTagTexto: { fontSize: 13, fontFamily: 'Nunito_800ExtraBold', color: BRAND.blue, letterSpacing: 0.3 },
+
   // ---- Card da pergunta ----
   cardPergunta: {
     backgroundColor: BRAND.card,
