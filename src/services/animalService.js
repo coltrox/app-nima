@@ -11,8 +11,14 @@ const animalService = {
    * Feed recomendado (RF06). Exige questionário respondido: sem ele o backend
    * devolve 400 — a tela usa isso para convidar o tutor a responder.
    */
-  recomendados: async () => {
-    const { data } = await http.get('/animais/recomendados');
+  recomendados: async (opcoes = {}) => {
+    // `todos` traz também os pets de fora do raio (ver de longe); `raio` custom
+    // sobrescreve os 50 km padrão.
+    const params = [];
+    if (opcoes.todos) params.push('todos=1');
+    if (opcoes.raio) params.push(`raio=${encodeURIComponent(opcoes.raio)}`);
+    const qs = params.length ? `?${params.join('&')}` : '';
+    const { data } = await http.get(`/animais/recomendados${qs}`);
     return data;
   },
 
@@ -27,9 +33,9 @@ const animalService = {
    * Retorna { lista, personalizado, aviso } — `personalizado: false` significa
    * que veio da vitrine porque o questionário ainda não foi respondido.
    */
-  feed: async () => {
+  feed: async (opcoes = {}) => {
     try {
-      const lista = await animalService.recomendados();
+      const lista = await animalService.recomendados(opcoes);
       return { lista, personalizado: true, aviso: null };
     } catch (erro) {
       if (statusDoErro(erro) === 400) {
