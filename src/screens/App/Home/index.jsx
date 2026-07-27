@@ -27,6 +27,7 @@ import useCarregar from '../../../hooks/useCarregar';
 import animalService, { primeiraFoto } from '../../../services/animalService';
 import vaquinhaService, { emReais } from '../../../services/vaquinhaService';
 import questionarioService from '../../../services/questionarioService';
+import localizacao from '../../../services/localizacao';
 import { mensagemDoErro } from '../../../services/http';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -243,6 +244,12 @@ const HomeScreen = ({ navigation, route }) => {
               const salvo = await AsyncStorage.getItem('@nima_profile_completed');
               setIsProfileComplete(salvo !== 'false');
             }
+
+            // GPS → perfil (fallback Campinas), e recarrega o feed já filtrado
+            // por raio. Fire-and-forget: se falhar, o feed segue como está.
+            localizacao.sincronizar()
+              .then((coords) => { if (coords) feed.recarregar({ silencioso: true }); })
+              .catch(() => {});
           } else {
             setIsLoggedIn(false);
             setUserName('');
@@ -377,6 +384,14 @@ const HomeScreen = ({ navigation, route }) => {
               <Text style={styles.matchMeta}>
                 {[destaque.idade, destaque.raca].filter(Boolean).join('  ·  ')}
               </Text>
+              {destaque.distancia_km != null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                  <Ionicons name="location-outline" size={13} color={colors.peach} />
+                  <Text style={[styles.matchMeta, { marginTop: 0 }]}>
+                    {destaque.distancia_km === 0 ? 'pertinho de você' : `a ${destaque.distancia_km} km de você`}
+                  </Text>
+                </View>
+              )}
             </View>
             <TouchableOpacity
               style={styles.matchBtn}
