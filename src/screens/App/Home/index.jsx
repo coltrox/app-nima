@@ -25,9 +25,11 @@ import Campo from '../../components/Campo';
 import { Carregando, Erro, Vazio, Aviso } from '../../components/Estado';
 import useCarregar from '../../../hooks/useCarregar';
 import animalService, { primeiraFoto } from '../../../services/animalService';
+import solicitacaoService from '../../../services/solicitacaoService';
 import vaquinhaService, { emReais } from '../../../services/vaquinhaService';
 import questionarioService from '../../../services/questionarioService';
 import localizacao from '../../../services/localizacao';
+import avatarPerfil from '../../../services/avatarPerfil';
 import { mensagemDoErro } from '../../../services/http';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -197,6 +199,30 @@ const HomeScreen = ({ navigation, route }) => {
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [isFirstTimeTutorialVisible, setIsFirstTimeTutorialVisible] = useState(false);
 
+  // Avatar do header = foto de perfil escolhida (um pet do tutor). Recarrega ao
+  // focar a Home para refletir a escolha feita no Perfil.
+  const [avatarUri, setAvatarUri] = useState(null);
+  useFocusEffect(
+    React.useCallback(() => {
+      let vivo = true;
+      (async () => {
+        const salvo = await avatarPerfil.obter();
+        if (salvo) { if (vivo) setAvatarUri(salvo); return; }
+        // Sem escolha salva: usa a foto do 1º pet do tutor (registrado ou adotado),
+        // para o avatar aparecer sem depender de abrir o Perfil.
+        const [reg, ado] = await Promise.all([
+          animalService.meus().catch(() => []),
+          solicitacaoService.meusPets().catch(() => []),
+        ]);
+        const uri = [...reg, ...ado].map(primeiraFoto).find(Boolean) || null;
+        if (!vivo) return;
+        setAvatarUri(uri);
+        if (uri) avatarPerfil.definir(uri);
+      })();
+      return () => { vivo = false; };
+    }, [])
+  );
+
   // Feed de animais: tenta o recomendado (precisa de questionário) e cai
   // para a vitrine geral quando o tutor ainda não respondeu.
   const feed = useCarregar(() => animalService.feed(), {
@@ -322,7 +348,18 @@ const HomeScreen = ({ navigation, route }) => {
     );
   }, [lista, searchQuery]);
 
-  const destaque = animais[0] ?? null;
+  // Destaque = o mais recomendado (o feed já vem ordenado por compatibilidade +
+  // proximidade). Em caso de EMPATE (mesma compatibilidade e distância), sorteia
+  // entre os empatados — assim reveza a cada carregamento.
+  const destaque = useMemo(() => {
+    if (!animais.length) return null;
+    const top = animais[0];
+    const empatados = animais.filter((a) =>
+      (a.compatibilidade ?? -1) === (top.compatibilidade ?? -1) &&
+      (a.distancia_km ?? Infinity) === (top.distancia_km ?? Infinity)
+    );
+    return empatados[Math.floor(Math.random() * empatados.length)];
+  }, [animais]);
   const campanha = (vaquinhas.dados || [])[0] ?? null;
 
   // Função que retorna JSX, não componente: declarado aqui dentro, um
@@ -358,16 +395,8 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
           )}
 
-          {/* O score só existe no feed recomendado (vem do questionário). */}
-          {destaque.compatibilidade != null && (
-            <View style={styles.compatBadge}>
-              <Ionicons name="heart" size={16} color={colors.peach} />
-              <View>
-                <Text style={styles.compatValue}>{Math.round(destaque.compatibilidade)}%</Text>
-                <Text style={styles.compatLabel}>compatível</Text>
-              </View>
-            </View>
-          )}
+          {/* A % de match não aparece na vitrine/destaque — o tutor a revela na
+              ficha do pet ("Ver match"). */}
 
           {destaque.status_posse ? (
             <View style={styles.ongBadge}>
@@ -435,7 +464,15 @@ const HomeScreen = ({ navigation, route }) => {
               <View style={styles.bellDot} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-              <View style={styles.avatar} />
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0151C8' }]}>
+                  <Text style={{ color: '#fff', fontFamily: 'Nunito_800ExtraBold', fontSize: 16 }}>
+                    {(userName || 'T').trim().charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -502,7 +539,7 @@ const HomeScreen = ({ navigation, route }) => {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
-            {personalizado ? 'Seu melhor match' : 'Disponíveis para adoção'}
+            Disponíveis para adoção
           </Text>
           <TouchableOpacity
             style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}

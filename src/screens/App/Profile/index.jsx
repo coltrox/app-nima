@@ -17,6 +17,7 @@ import questionarioService from '../../../services/questionarioService';
 import animalService, { primeiraFoto } from '../../../services/animalService';
 import solicitacaoService from '../../../services/solicitacaoService';
 import favoritos from '../../../services/favoritos';
+import avatarPerfil from '../../../services/avatarPerfil';
 
 // Perfil do tutor.
 //
@@ -90,14 +91,38 @@ const ProfileScreen = ({ navigation }) => {
     return p;
   }, [respondeu, pets.length]);
 
-  // O avatar é a foto do pet — o primeiro que tiver imagem.
-  const fotoPet = useMemo(() => {
+  // O avatar é a foto de um pet do tutor. Se ele tem vários, pode escolher qual
+  // (a escolha fica salva e vale nas outras telas, ex.: header da Home).
+  const petsComFoto = useMemo(() => {
+    const vistos = new Set();
+    const out = [];
     for (const p of pets) {
-      const f = primeiraFoto(p);
-      if (f) return { uri: f, nome: p.nome };
+      const uri = primeiraFoto(p);
+      if (uri && !vistos.has(uri)) { vistos.add(uri); out.push({ uri, nome: p.nome }); }
     }
-    return null;
+    return out;
   }, [pets]);
+
+  const [avatarUri, setAvatarUri] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      const salvo = await avatarPerfil.obter();
+      const valido = salvo && petsComFoto.some((p) => p.uri === salvo);
+      const escolhido = valido ? salvo : (petsComFoto[0]?.uri ?? null);
+      if (!vivo) return;
+      setAvatarUri(escolhido);
+      if (escolhido !== salvo) avatarPerfil.definir(escolhido);
+    })();
+    return () => { vivo = false; };
+  }, [petsComFoto]);
+
+  const escolherAvatar = (uri) => { setAvatarUri(uri); avatarPerfil.definir(uri); };
+
+  // Mantém o formato { uri, nome } que o restante da tela já usa.
+  const fotoPet = avatarUri
+    ? { uri: avatarUri, nome: petsComFoto.find((p) => p.uri === avatarUri)?.nome ?? '' }
+    : null;
 
   const inicial = (nome || 'T').trim().charAt(0).toUpperCase();
 
@@ -268,6 +293,32 @@ const ProfileScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
+
+        {/* Escolha da foto de perfil — só quando há mais de um pet com foto */}
+        {petsComFoto.length > 1 ? (
+          <View style={{ paddingHorizontal: PAD, marginTop: 4 }}>
+            <Text style={{ fontSize: 12.5, fontFamily: 'Nunito_700Bold', color: BRAND.inkSoft, marginBottom: 8 }}>
+              Escolha a foto do perfil
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+              {petsComFoto.map((p) => {
+                const ativo = p.uri === avatarUri;
+                return (
+                  <TouchableOpacity key={p.uri} onPress={() => escolherAvatar(p.uri)} activeOpacity={0.85}>
+                    <Image
+                      source={{ uri: p.uri }}
+                      style={{
+                        width: 56, height: 56, borderRadius: 28,
+                        borderWidth: ativo ? 3 : 1.5,
+                        borderColor: ativo ? BRAND.blue : BRAND.border,
+                      }}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
 
         {/* Progresso do perfil */}
         <View style={[t.card, { backgroundColor: BRAND.navy, borderColor: BRAND.navy }]}>
