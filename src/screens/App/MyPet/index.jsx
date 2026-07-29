@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, Image, ScrollView, SafeAreaView, StatusBar,
-  Modal, ActivityIndicator, KeyboardAvoidingView, Platform,
+  Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
@@ -42,6 +42,12 @@ const localDaLeitura = (l) =>
   l.latitude != null && l.longitude != null
     ? `${Number(l.latitude).toFixed(4)}, ${Number(l.longitude).toFixed(4)}`
     : 'Local não informado';
+
+// Mapa estático (sem chave) e abertura no Google Maps na localização registrada.
+const mapaEstatico = (lat, lon) =>
+  `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=15&size=600x220&markers=${lat},${lon},red-pushpin`;
+const abrirNoMaps = (lat, lon) =>
+  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`);
 
 const MyPetScreen = ({ navigation }) => {
   const [indice, setIndice] = useState(0);
@@ -99,6 +105,143 @@ const MyPetScreen = ({ navigation }) => {
     [pet]
   );
   const ultimaLeitura = leituras[0] ?? null;
+
+  // Endereço legível da última leitura (reverse geocode, best-effort). Cai para
+  // as coordenadas se o serviço não responder.
+  const [enderecoLeitura, setEnderecoLeitura] = useState(null);
+  useEffect(() => {
+    let vivo = true;
+    setEnderecoLeitura(null);
+    const l = ultimaLeitura;
+    if (!l || l.latitude == null || l.longitude == null) return undefined;
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=18&addressdetails=1&lat=${l.latitude}&lon=${l.longitude}`, {
+      headers: { 'Accept-Language': 'pt-BR' },
+    })
+      .then((r) => r.json())
+      .then((j) => { if (vivo && j?.display_name) setEnderecoLeitura(j.display_name); })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [ultimaLeitura]);
+
+  // ---- Carteira de vacinação (editável pelo tutor: pets dele, cadastrados ou
+  // adotados). Backend escopa por tutor_id; pet de outro devolve 404. ----
+  const [vacEditor, setVacEditor] = useState(false);
+  const [vacinasEdit, setVacinasEdit] = useState([]);
+  const [novaVac, setNovaVac] = useState({ nome: '', data: '' });
+  const [salvandoVac, setSalvandoVac] = useState(false);
+  const [erroVac, setErroVac] = useState(null);
+
+  const abrirVacEditor = () => {
+    setVacinasEdit(vacinas.map((v) => ({ nome: v.nome ?? v.vacina ?? '', data: v.data ?? v.aplicada_em ?? '' })));
+    setNovaVac({ nome: '', data: '' });
+    setErroVac(null);
+    setVacEditor(true);
+  };
+
+  const adicionarVac = () => {
+    if (!novaVac.nome.trim()) { setErroVac('Informe o nome da vacina.'); return; }
+    setVacinasEdit((l) => [...l, { nome: novaVac.nome.trim(), data: novaVac.data.trim() }]);
+    setNovaVac({ nome: '', data: '' });
+    setErroVac(null);
+  };
+
+  const removerVac = (i) => setVacinasEdit((l) => l.filter((_, idx) => idx !== i));
+
+  const salvarVacinas = async () => {
+    if (!pet?.id) return;
+    setSalvandoVac(true);
+    setErroVac(null);
+    try {
+      await animalService.atualizarVacinasMeu(pet.id, vacinasEdit);
+      setVacEditor(false);
+      dados.recarregar();
+    } catch (e) {
+      setErroVac(mensagemDoErro(e, 'Não foi possível salvar a carteira.'));
+    } finally {
+      setSalvandoVac(false);
+    }
+  };
+
+  const editorVacinas = () => (
+    <Modal visible={vacEditor} animationType="slide" onRequestClose={() => setVacEditor(false)}>
+      <SafeAreaView style={t.tela}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={t.cabecalho}>
+            <TouchableOpacity style={t.voltar} onPress={() => setVacEditor(false)} disabled={salvandoVac}>
+              <Ionicons name="close" size={20} color={BRAND.ink} />
+            </TouchableOpacity>
+            <Text style={[t.cardTitulo, { fontSize: 16 }]}>Carteira de vacinação</Text>
+          </View>
+
+          <ScrollView style={t.scroll} contentContainerStyle={t.conteudoSemBarra} showsVerticalScrollIndicator={false}>
+            <Text style={t.titulo}>{pet?.nome ?? 'Meu pet'}</Text>
+            <Text style={t.subtitulo}>Adicione ou remova as vacinas do seu pet.</Text>
+
+            <View style={{ paddingHorizontal: PAD, marginTop: 16, gap: 10 }}>
+              {vacinasEdit.length === 0 ? (
+                <Text style={t.cardTexto}>Nenhuma vacina na carteira ainda.</Text>
+              ) : (
+                vacinasEdit.map((v, i) => (
+                  <View key={`${v.nome}-${i}`} style={[t.card, { marginTop: 0, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+                    <Ionicons name="shield-checkmark" size={20} color={BRAND.success} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: 'Nunito_700Bold', fontSize: 14.5, color: BRAND.ink }}>{v.nome}</Text>
+                      {v.data ? <Text style={{ fontFamily: 'Nunito_400Regular', fontSize: 12.5, color: BRAND.inkSoft }}>{v.data}</Text> : null}
+                    </View>
+                    <TouchableOpacity onPress={() => removerVac(i)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="trash-outline" size={19} color={BRAND.danger} />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+
+              <View style={[t.card, { marginTop: 6, gap: 12 }]}>
+                <Text style={t.rotulo}>Adicionar vacina</Text>
+                <Campo
+                  rotulo="Vacina"
+                  icone="shield-outline"
+                  placeholder="Ex.: V10, Antirrábica…"
+                  value={novaVac.nome}
+                  onChangeText={(v) => setNovaVac((n) => ({ ...n, nome: v }))}
+                />
+                <Campo
+                  rotulo="Data (opcional)"
+                  icone="calendar-outline"
+                  placeholder="Ex.: 07/2026"
+                  value={novaVac.data}
+                  onChangeText={(v) => setNovaVac((n) => ({ ...n, data: v }))}
+                />
+                <TouchableOpacity style={t.botaoSecundario} activeOpacity={0.85} onPress={adicionarVac}>
+                  <Ionicons name="add" size={18} color={BRAND.blue} />
+                  <Text style={t.botaoSecundarioTexto}>Adicionar à carteira</Text>
+                </TouchableOpacity>
+              </View>
+
+              {erroVac ? (
+                <View style={[t.faixaErro, { marginHorizontal: 0 }]}>
+                  <Ionicons name="alert-circle" size={19} color={BRAND.danger} />
+                  <Text style={t.faixaErroTexto}>{erroVac}</Text>
+                </View>
+              ) : null}
+            </View>
+          </ScrollView>
+
+          <View style={t.rodape}>
+            <TouchableOpacity style={[t.botao, salvandoVac && t.botaoDesabilitado]} activeOpacity={0.85} onPress={salvarVacinas} disabled={salvandoVac}>
+              {salvandoVac ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={19} color="#fff" />
+                  <Text style={t.botaoTexto}>Salvar carteira</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
 
   // ---- Cadastro do próprio pet ----
   const [novo, setNovo] = useState({ nome: '', especie: 'Cão', raca: '', porte: 'Médio', idade: '', temperamento: '' });
@@ -488,18 +631,40 @@ const MyPetScreen = ({ navigation }) => {
             </Text>
           ) : ultimaLeitura ? (
             <>
-              <View style={styles.tagBody}>
-                <View style={styles.tagMapThumb}>
-                  <Ionicons name="location" size={32} color={BRAND.blue} />
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => abrirNoMaps(ultimaLeitura.latitude, ultimaLeitura.longitude)}
+              >
+                <View style={styles.tagBody}>
+                  <View style={styles.tagMapThumb}>
+                    <Ionicons name="location" size={28} color={BRAND.blue} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tagInfoLabel}>Última leitura detectada</Text>
+                    <Text style={styles.tagInfoValue} numberOfLines={2}>
+                      {enderecoLeitura || localDaLeitura(ultimaLeitura)}
+                    </Text>
+                    {formatarData(ultimaLeitura.lida_em) ? (
+                      <Text style={[styles.tagInfoLabel, { marginTop: 2 }]}>{formatarData(ultimaLeitura.lida_em)}</Text>
+                    ) : null}
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.tagInfoLabel}>Última leitura detectada</Text>
-                  <Text style={styles.tagInfoValue}>
-                    {localDaLeitura(ultimaLeitura)}
-                    {formatarData(ultimaLeitura.lida_em) ? `  ·  ${formatarData(ultimaLeitura.lida_em)}` : ''}
-                  </Text>
-                </View>
-              </View>
+
+                {/* Mapinha embaixo do ícone — tocar abre a localização no Google Maps */}
+                {ultimaLeitura.latitude != null && ultimaLeitura.longitude != null ? (
+                  <View style={{ marginTop: 10, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                    <Image
+                      source={{ uri: mapaEstatico(ultimaLeitura.latitude, ultimaLeitura.longitude) }}
+                      style={{ width: '100%', height: 140 }}
+                      resizeMode="cover"
+                    />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9 }}>
+                      <Ionicons name="navigate" size={15} color="#fff" />
+                      <Text style={{ color: '#fff', fontFamily: 'Nunito_700Bold', fontSize: 13 }}>Abrir no Google Maps</Text>
+                    </View>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
 
               {leituras.slice(1, 5).map((l) => (
                 <View key={l.id} style={styles.leituraItem}>
@@ -533,8 +698,14 @@ const MyPetScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Vacinas */}
-        <Text style={styles.sectionTitle}>Saúde</Text>
+        {/* Vacinas — carteira editável pelo tutor (pets dele) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: PAD, marginTop: 22 }}>
+          <Text style={[styles.sectionTitle, { flex: 1, marginTop: 0, marginBottom: 0, paddingHorizontal: 0 }]}>Saúde</Text>
+          <TouchableOpacity onPress={abrirVacEditor} activeOpacity={0.8} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Ionicons name="create-outline" size={17} color={BRAND.blue} />
+            <Text style={{ color: BRAND.blue, fontFamily: 'Nunito_700Bold', fontSize: 13.5 }}>Editar carteira</Text>
+          </TouchableOpacity>
+        </View>
         {vacinas.length === 0 ? (
           <View style={styles.vacCard}>
             <View style={styles.vacIcon}>
@@ -543,9 +714,7 @@ const MyPetScreen = ({ navigation }) => {
             <View style={{ flex: 1 }}>
               <Text style={styles.vacTitle}>Sem vacinas registradas</Text>
               <Text style={styles.vacSub}>
-                {ehRegistrado
-                  ? 'O prontuário digital hoje é preenchido pela ONG no painel dela.'
-                  : 'A ONG mantém o prontuário deste pet.'}
+                Toque em “Editar carteira” para registrar as vacinas do seu pet.
               </Text>
             </View>
           </View>
@@ -561,6 +730,7 @@ const MyPetScreen = ({ navigation }) => {
       </ScrollView>
 
       {formulario()}
+      {editorVacinas()}
       <Navbar navigation={navigation} currentRoute="MyPet" />
 
       <Confirmar

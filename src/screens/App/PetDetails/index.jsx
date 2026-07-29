@@ -25,6 +25,23 @@ const CORES_STATUS = {
   'Desaparecido': [t.badgeVermelho, t.badgeVermelhoTexto],
 };
 
+// Match sob demanda: cor e veredito a partir do score da dupla (0–100).
+const corDoScore = (s) => (s >= 75 ? BRAND.success : s >= 55 ? BRAND.blue : BRAND.danger);
+const vereditoDoScore = (s) =>
+  s >= 75 ? 'Forte compatibilidade com o seu perfil!'
+    : s >= 55 ? 'Boa compatibilidade, com alguns pontos de atenção.'
+      : 'Compatibilidade baixa — vale avaliar com calma.';
+// Resumo curto e AMIGÁVEL para o tutor. O relatório completo (match.relatorio)
+// é o parecer para a ONG e NÃO deve ser mostrado ao tutor — aqui ele vê só isto.
+const resumoTutor = (score, pet) => {
+  const nome = pet?.nome || 'esse pet';
+  const tracos = [pet?.porte, pet?.especie, pet?.temperamento].filter(Boolean).join(' · ');
+  const base = tracos ? ` ${nome} é ${tracos.toLowerCase()}.` : '';
+  if (score >= 75) return `Vocês combinam muito!${base} O perfil dele tem tudo a ver com a sua rotina e as suas preferências.`;
+  if (score >= 55) return `Boa combinação!${base} Ele se encaixa no seu perfil — só fique atento a alguns detalhes do dia a dia.`;
+  return `A compatibilidade ficou mais baixa.${base} Pode pedir ajustes de rotina ou espaço — vale conversar com a ONG antes de decidir.`;
+};
+
 const PetDetailsScreen = ({ navigation, route }) => {
   const id = route?.params?.id;
 
@@ -67,6 +84,34 @@ const PetDetailsScreen = ({ navigation, route }) => {
   }, [id]);
 
   const alternarFavorito = async () => setFavorito(await favoritos.alternar(id));
+
+  // Match sob demanda: a % não aparece na vitrine; aqui o tutor a revela com
+  // "Ver match". Fica salva (o backend reusa na adoção). Ao abrir a ficha,
+  // busca um match já calculado antes.
+  const [match, setMatch] = useState(null);
+  const [carregandoMatch, setCarregandoMatch] = useState(false);
+  const [erroMatch, setErroMatch] = useState(null);
+  const [mostrarParecer, setMostrarParecer] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    animalService.obterMatch(id)
+      .then((m) => { if (vivo && m?.existe) setMatch({ score: m.score, relatorio: m.relatorio, via: m.via }); })
+      .catch(() => {});
+    return () => { vivo = false; };
+  }, [id]);
+
+  const verMatch = async () => {
+    setCarregandoMatch(true);
+    setErroMatch(null);
+    try {
+      setMatch(await animalService.verMatch(id));
+    } catch (e) {
+      setErroMatch(mensagemDoErro(e, 'Não foi possível calcular o match agora.'));
+    } finally {
+      setCarregandoMatch(false);
+    }
+  };
 
   const solicitar = async () => {
     setEnviando(true);
@@ -159,14 +204,8 @@ const PetDetailsScreen = ({ navigation, route }) => {
             <View style={[t.badge, badgeEstilo]}>
               <Text style={[t.badgeTexto, badgeTexto]}>{pet.status_posse}</Text>
             </View>
-            {pet.compatibilidade != null && (
-              <View style={[t.badge, t.badgeAzul]}>
-                <Ionicons name="heart" size={12} color={BRAND.blue} />
-                <Text style={[t.badgeTexto, t.badgeAzulTexto]}>
-                  {Math.round(pet.compatibilidade)}% compatível
-                </Text>
-              </View>
-            )}
+            {/* A % de compatibilidade não aparece aqui — o tutor a revela no
+                card "Seu match" logo abaixo. */}
           </View>
 
           <View style={t.card}>
@@ -187,6 +226,56 @@ const PetDetailsScreen = ({ navigation, route }) => {
                 </View>
               ))}
           </View>
+
+          {/* Seu match — só quando dá para adotar (pet disponível) e o tutor já
+              respondeu o questionário. A % fica salva e vai junto na adoção. */}
+          {!adotado && respondeu ? (
+            <View style={t.card}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="sparkles" size={18} color={BRAND.blue} />
+                <Text style={t.cardTitulo}>Seu match com o {pet.nome}</Text>
+              </View>
+
+              {match ? (
+                <>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 }}>
+                    <Text style={{ fontSize: 40, fontFamily: 'Nunito_800ExtraBold', color: corDoScore(match.score) }}>
+                      {match.score}%
+                    </Text>
+                    <Text style={{ flex: 1, fontSize: 13.5, color: BRAND.ink, fontFamily: 'Nunito_600SemiBold', lineHeight: 19 }}>
+                      {vereditoDoScore(match.score)}
+                    </Text>
+                  </View>
+                  <Text style={[t.cardTexto, { marginTop: 10 }]}>{resumoTutor(match.score, pet)}</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[t.cardTexto, { marginTop: 6 }]}>
+                    Descubra o quanto o seu perfil combina com o {pet.nome}. A nota fica salva e vai
+                    junto quando você pedir a adoção.
+                  </Text>
+                  {erroMatch ? (
+                    <Text style={[t.cardTexto, { color: BRAND.danger, marginTop: 8 }]}>{erroMatch}</Text>
+                  ) : null}
+                  <TouchableOpacity
+                    style={[t.botaoSecundario, { marginTop: 12 }]}
+                    activeOpacity={0.85}
+                    onPress={verMatch}
+                    disabled={carregandoMatch}
+                  >
+                    {carregandoMatch ? (
+                      <ActivityIndicator color={BRAND.blue} />
+                    ) : (
+                      <>
+                        <Ionicons name="sparkles-outline" size={18} color={BRAND.blue} />
+                        <Text style={t.botaoSecundarioTexto}>Ver meu match</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          ) : null}
 
           <View style={t.card}>
             <Text style={t.cardTitulo}>Carteira de vacinação</Text>
@@ -221,6 +310,31 @@ const PetDetailsScreen = ({ navigation, route }) => {
                   <Text style={t.cardLinhaTexto}>{pet.dono_telefone}</Text>
                 </View>
               ) : null}
+            </View>
+          ) : null}
+
+          {/* ONG responsável — para o tutor conhecer o perfil da ONG. */}
+          {pet.ong?.nome ? (
+            <View style={t.card}>
+              <Text style={t.cardTitulo}>ONG responsável</Text>
+              <View style={t.cardLinha}>
+                <Ionicons name="business-outline" size={17} color={BRAND.inkSoft} />
+                <Text style={t.cardLinhaTexto}>{pet.ong.nome}</Text>
+              </View>
+              {pet.ong.endereco ? (
+                <View style={t.cardLinha}>
+                  <Ionicons name="location-outline" size={17} color={BRAND.inkSoft} />
+                  <Text style={t.cardLinhaTexto}>{pet.ong.endereco}</Text>
+                </View>
+              ) : null}
+              <TouchableOpacity
+                style={[t.botaoSecundario, { marginTop: 12 }]}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('Ongs')}
+              >
+                <Ionicons name="business-outline" size={18} color={BRAND.blue} />
+                <Text style={t.botaoSecundarioTexto}>Conhecer a ONG</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
 
@@ -297,46 +411,47 @@ const PetDetailsScreen = ({ navigation, route }) => {
               </Text>
             </View>
           ) : null}
-        </ScrollView>
 
-        {sucesso ? (
-          <View style={t.rodape}>
-            <TouchableOpacity style={t.botao} activeOpacity={0.85} onPress={() => navigation.navigate('Solicitacoes')}>
-              <Ionicons name="clipboard-outline" size={19} color="#fff" />
-              <Text style={t.botaoTexto}>Ver minhas adoções</Text>
-            </TouchableOpacity>
-          </View>
-        ) : bloqueado ? (
-          <View style={t.rodape}>
-            <View style={[t.botao, t.botaoDesabilitado]}>
-              <Text style={[t.botaoTexto, t.botaoTextoDesabilitado]}>
-                {adotado
-                  ? 'Este pet já foi adotado'
-                  : jaPediu
-                    ? 'Solicitação já enviada'
-                    : 'Responda o questionário para adotar'}
-              </Text>
+          {/* "Quero adotar" fica POR ÚLTIMO na ficha (antes era rodapé fixo). */}
+          {sucesso ? (
+            <View style={{ paddingHorizontal: PAD, marginTop: 18 }}>
+              <TouchableOpacity style={t.botao} activeOpacity={0.85} onPress={() => navigation.navigate('Solicitacoes')}>
+                <Ionicons name="clipboard-outline" size={19} color="#fff" />
+                <Text style={t.botaoTexto}>Ver minhas adoções</Text>
+              </TouchableOpacity>
             </View>
-          </View>
-        ) : (
-          <View style={t.rodape}>
-            <TouchableOpacity
-              style={[t.botao, enviando && t.botaoDesabilitado]}
-              activeOpacity={0.85}
-              onPress={solicitar}
-              disabled={enviando}
-            >
-              {enviando ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="heart" size={19} color="#fff" />
-                  <Text style={t.botaoTexto}>Quero adotar o {pet.nome}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+          ) : bloqueado ? (
+            <View style={{ paddingHorizontal: PAD, marginTop: 18 }}>
+              <View style={[t.botao, t.botaoDesabilitado]}>
+                <Text style={[t.botaoTexto, t.botaoTextoDesabilitado]}>
+                  {adotado
+                    ? 'Este pet já foi adotado'
+                    : jaPediu
+                      ? 'Solicitação já enviada'
+                      : 'Responda o questionário para adotar'}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={{ paddingHorizontal: PAD, marginTop: 18 }}>
+              <TouchableOpacity
+                style={[t.botao, enviando && t.botaoDesabilitado]}
+                activeOpacity={0.85}
+                onPress={solicitar}
+                disabled={enviando}
+              >
+                {enviando ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="heart" size={19} color="#fff" />
+                    <Text style={t.botaoTexto}>Quero adotar o {pet.nome}</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

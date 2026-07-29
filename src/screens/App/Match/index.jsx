@@ -17,7 +17,9 @@ import animalService, { primeiraFoto } from '../../../services/animalService';
 
 const FILTROS = [
   { key: 'todos', label: 'Todos' },
-  { key: 'Cachorro', label: 'Cachorros' },
+  // O CHECK de animais.especie aceita só 'Cão'/'Gato' — o filtro compara com o
+  // valor do banco, então a key precisa ser 'Cão' (era 'Cachorro' e não pegava).
+  { key: 'Cão', label: 'Cachorros' },
   { key: 'Gato', label: 'Gatos' },
 ];
 
@@ -172,12 +174,8 @@ const MatchScreen = ({ navigation }) => {
                         <Ionicons name="paw" size={30} color={BRAND.blue} />
                       </View>
                     )}
-                    {a.compatibilidade != null && (
-                      <View style={[t.badge, t.badgeFoto]}>
-                        <Ionicons name="heart" size={12} color={BRAND.blue} />
-                        <Text style={[t.badgeTexto, t.badgeAzulTexto]}>{Math.round(a.compatibilidade)}%</Text>
-                      </View>
-                    )}
+                    {/* A % de match NÃO aparece na vitrine — o tutor a revela na
+                        ficha do pet ("Ver match"). Aqui fica só a distância. */}
 
                     <TouchableOpacity
                       style={{

@@ -50,7 +50,11 @@ const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [initialRoute, setInitialRoute] = useState('Home');
+  // Sem sessão válida a entrada é o Login (que já tem "Criar conta"). Só com
+  // um token de TUTOR lembrado a entrada é a Home — antes caía sempre na Home
+  // de visitante, sem caminho visível pra login (só saindo pelas Configurações),
+  // e como /animais exige token nada carregava. Ver src/screens/Auth/Login.
+  const [initialRoute, setInitialRoute] = useState('Login');
 
   // Fonte da marca carregada UMA vez na raiz. Antes só o Login chamava useFonts,
   // então no F5 as demais telas renderizavam com a fonte do sistema e trocavam
@@ -66,18 +70,24 @@ export default function App() {
   });
 
   useEffect(() => {
+    // Cargos que só existem no painel web — uma sessão dessas não vale no app.
+    const CARGOS_SO_WEB = ['ong', 'desenvolvedor'];
+
     const checkLoginStatus = async () => {
       try {
         const token = await AsyncStorage.getItem('@nima_token');
         const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
+        const role = await AsyncStorage.getItem('@nima_user_role');
 
-        // Com ou sem sessão a entrada é a Home: o app funciona para visitante,
-        // e o que exige conta (adotar, meu pet, perfil) pede login na hora.
-        setInitialRoute('Home');
+        // Só entra direto na Home com um token de TUTOR que pediu "lembrar-me".
+        const sessaoTutorValida =
+          !!token && wasRemembered === 'true' && !CARGOS_SO_WEB.includes(role);
 
-        if (!token || wasRemembered !== 'true') {
-          // Sessão não persistida: limpa para não reaproveitar token velho.
-          if (token && wasRemembered !== 'true') {
+        if (sessaoTutorValida) {
+          setInitialRoute('Home');
+        } else {
+          // Sessão inválida/não persistida/de ONG-dev: limpa e vai pro Login.
+          if (token) {
             await AsyncStorage.multiRemove([
               '@nima_token',
               '@nima_user_role',
@@ -85,9 +95,10 @@ export default function App() {
               '@nima_profile_completed',
             ]);
           }
+          setInitialRoute('Login');
         }
       } catch (e) {
-        setInitialRoute('Home');
+        setInitialRoute('Login');
       } finally {
         setIsLoading(false);
       }

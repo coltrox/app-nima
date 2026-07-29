@@ -92,6 +92,29 @@ const animalService = {
     const { data } = await http.get(`/animais/${animalId}/leituras`);
     return data;
   },
+
+  // ------------------------------------------------------------ MATCH SOB DEMANDA
+  // A % não aparece na vitrine. O tutor pede "Ver match" na ficha: calcula a
+  // compatibilidade da dupla (adotante × este pet), mostra e SALVA. A adoção
+  // reusa essa nota (a ONG vê a mesma). Exige questionário respondido.
+
+  /** Match já salvo deste tutor para o pet: { existe, score, relatorio, via }. */
+  obterMatch: async (id) => {
+    const { data } = await http.get(`/animais/${id}/match`);
+    return data;
+  },
+
+  /** Calcula e salva o match (Fluxo 2). Retorna { score, relatorio, via }. */
+  verMatch: async (id) => {
+    const { data } = await http.post(`/animais/${id}/match`);
+    return data;
+  },
+
+  /** Atualiza a carteira de vacinação de um pet do próprio tutor (lista completa). */
+  atualizarVacinasMeu: async (id, prontuario_vacinas) => {
+    const { data } = await http.put(`/animais/meus/${id}/vacinas`, { prontuario_vacinas });
+    return data;
+  },
 };
 
 export default animalService;
