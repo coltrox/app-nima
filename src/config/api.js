@@ -14,7 +14,7 @@ import { Platform } from 'react-native';
 // Porta do backend Express local (src/server.js → PORT || 3000).
 const PORTA_BACKEND_LOCAL = 3000;
 
-const RENDER_URL = 'https://nima-backend-ofc.onrender.com/api';
+export const RENDER_URL = 'https://nima-backend-ofc.onrender.com/api';
 
 // "192.168.0.174:8081" | "localhost:8081" → só o host, sem a porta do Metro.
 function hostDoExpo() {

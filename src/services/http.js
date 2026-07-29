@@ -13,7 +13,7 @@
 // { error }, outros { message }. `mensagemDoErro` cobre os dois.
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '../config/api';
+import { API_URL, RENDER_URL } from '../config/api';
 
 export const TOKEN_KEY = '@nima_token';
 
@@ -28,6 +28,25 @@ http.interceptors.request.use(async (config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// Fallback automático: se o backend LOCAL (dev) não responder (erro de rede/
+// conexão recusada), a requisição é reenviada ao Render. Assim o app funciona em
+// qualquer máquina SEM precisar do backend/n8n locais rodando (ex.: outro PC).
+// Em produção API_URL já é o Render, então este caminho nem é acionado.
+http.interceptors.response.use(
+  (resp) => resp,
+  async (erro) => {
+    const cfg = erro?.config;
+    const semResposta = !erro?.response; // erro de rede, não uma resposta HTTP
+    const usandoLocal = API_URL !== RENDER_URL;
+    if (semResposta && usandoLocal && cfg && !cfg.__tentouRender) {
+      cfg.__tentouRender = true;
+      cfg.baseURL = RENDER_URL;
+      return http(cfg);
+    }
+    return Promise.reject(erro);
+  }
+);
 
 /** Extrai a mensagem legível de um erro do axios. */
 export function mensagemDoErro(erro, fallback = 'Não foi possível concluir. Tente de novo.') {
