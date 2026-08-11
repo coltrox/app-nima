@@ -75,9 +75,9 @@ const SmartTagScreen = ({ navigation, route }) => {
           <Text style={t.rotulo}>Código da Patinha</Text>
           <TextInput
             style={t.campo}
-            placeholder="Ex.: NIMA-2048"
+            placeholder="Ex.: nima-0001"
             placeholderTextColor={BRAND.inkSoft}
-            autoCapitalize="characters"
+            autoCapitalize="none"
             autoCorrect={false}
             value={codigo}
             onChangeText={setCodigo}

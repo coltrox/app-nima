@@ -115,6 +115,20 @@ const animalService = {
     const { data } = await http.put(`/animais/meus/${id}/vacinas`, { prontuario_vacinas });
     return data;
   },
+
+  /** Envia uma foto para um pet do próprio tutor. `asset` vem do expo-image-picker. */
+  adicionarFotoMeu: async (id, asset) => {
+    const form = new FormData();
+    form.append('foto', {
+      uri: asset.uri,
+      name: asset.fileName || `pet-${id}.jpg`,
+      type: asset.mimeType || 'image/jpeg',
+    });
+    const { data } = await http.post(`/animais/meus/${id}/fotos`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
 };
 
 export default animalService;

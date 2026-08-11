@@ -4,6 +4,7 @@ import {
   Modal, ActivityIndicator, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { styles } from './styles';
 import Navbar from '../../components/NavBar/navbar';
 import Logo from '../../components/Logo';
@@ -292,6 +293,28 @@ const MyPetScreen = ({ navigation }) => {
     }
   };
 
+  // Foto do pet: escolhe da galeria e envia (bucket público). Só pets do tutor.
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const enviarFoto = async () => {
+    if (!pet?.id) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setErroAcao('Precisamos de acesso às suas fotos para enviar a imagem do pet.');
+      return;
+    }
+    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.6 });
+    if (r.canceled || !r.assets?.[0]) return;
+    setEnviandoFoto(true);
+    try {
+      await animalService.adicionarFotoMeu(pet.id, r.assets[0]);
+      dados.recarregar();
+    } catch (e) {
+      setErroAcao(mensagemDoErro(e, 'Não foi possível enviar a foto.'));
+    } finally {
+      setEnviandoFoto(false);
+    }
+  };
+
   // ATENÇÃO: estes são funções que RETORNAM JSX, chamadas como `cabecalho()`.
   // Não podem virar componentes declarados aqui dentro: a
   // cada tecla o estado muda, esta função é recriada, e o React trata a nova
@@ -422,7 +445,7 @@ const MyPetScreen = ({ navigation }) => {
               ) : null}
 
               <Text style={[t.cardTexto, { marginTop: 0 }]}>
-                A foto ainda não pode ser enviada pelo app — o upload existe só para as ONGs.
+                Depois de cadastrar, toque na foto do pet para enviar uma imagem da galeria.
               </Text>
             </View>
           </ScrollView>
@@ -530,13 +553,21 @@ const MyPetScreen = ({ navigation }) => {
 
         {/* Card do pet */}
         <View style={styles.petCard}>
-          {foto ? (
-            <Image source={{ uri: foto }} style={styles.petPhoto} />
-          ) : (
-            <View style={styles.petPhotoVazia}>
-              <Ionicons name="paw" size={34} color={BRAND.blue} />
+          <TouchableOpacity activeOpacity={0.85} onPress={enviarFoto} disabled={enviandoFoto}>
+            {foto ? (
+              <Image source={{ uri: foto }} style={styles.petPhoto} />
+            ) : (
+              <View style={styles.petPhotoVazia}>
+                <Ionicons name="paw" size={34} color={BRAND.blue} />
+              </View>
+            )}
+            {/* Badge de câmera: deixa claro que dá pra trocar a foto tocando. */}
+            <View style={{ position: 'absolute', right: -4, bottom: -4, backgroundColor: BRAND.blue, borderRadius: 12, width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}>
+              {enviandoFoto
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="camera" size={13} color="#fff" />}
             </View>
-          )}
+          </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <View style={styles.petNameRow}>
               <Text style={styles.petName}>{pet.nome}</Text>
