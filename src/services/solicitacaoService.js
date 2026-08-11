@@ -4,7 +4,8 @@ import http from './http';
 
 export const STATUS_ROTULO = {
   pendente: 'Em análise',
-  aprovada: 'Aprovada',
+  aprovada: 'Aceita — combine a entrega',
+  entregue: 'Concluída',
   recusada: 'Não aprovada',
 };
 
@@ -22,14 +23,14 @@ const solicitacaoService = {
   },
 
   /**
-   * Pets que o tutor efetivamente adotou.
-   * Hoje não existe vínculo tutor→animal no banco (`animais.dono_*` é texto livre
-   * preenchido pela ONG), então a adoção aprovada é a única fonte de verdade.
-   * Ver docs/ALINHAMENTO-BACKEND.md, item "meus pets".
+   * Pets que o tutor efetivamente adotou = candidaturas ENTREGUES. A posse
+   * (tutor_id) só passa ao tutor quando a ONG marca "entregue" (migração 022),
+   * então antes disso o pet ainda é da ONG e não entra em "Meu Pet". Os
+   * entregues também aparecem em /animais/meus (tutor_id); MyPet desduplica.
    */
   meusPets: async () => {
     const lista = await solicitacaoService.minhas();
-    return (lista || []).filter((s) => s.status === 'aprovada' && s.animal).map((s) => s.animal);
+    return (lista || []).filter((s) => s.status === 'entregue' && s.animal).map((s) => s.animal);
   },
 };
 

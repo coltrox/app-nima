@@ -14,7 +14,8 @@ import { primeiraFoto } from '../../../services/animalService';
 
 const ESTILO_STATUS = {
   pendente: [t.badgeAmbar, t.badgeAmbarTexto, 'time-outline'],
-  aprovada: [t.badgeVerde, t.badgeVerdeTexto, 'checkmark-circle-outline'],
+  aprovada: [t.badgeVerde, t.badgeVerdeTexto, 'heart-circle-outline'],
+  entregue: [t.badgeAzul, t.badgeAzulTexto, 'checkmark-circle-outline'],
   recusada: [t.badgeVermelho, t.badgeVermelhoTexto, 'close-circle-outline'],
 };
 

@@ -547,7 +547,7 @@ const PatinhaScreen = ({ navigation }) => {
 
   // ---- Resgate por código ----
   // Digitar o código não basta sozinho: a ONG precisa ter reservado a tag no
-  // nome desta conta. Os códigos são sequenciais (NIMA-0001, 0002…), então sem
+  // nome desta conta. Os códigos são sequenciais (nima-0001, 0002…), então sem
   // a reserva bastaria chutar o próximo número.
   const caixaResgate = () => (
     <View style={t.card}>
@@ -563,8 +563,8 @@ const PatinhaScreen = ({ navigation }) => {
       <View style={{ marginTop: 12 }}>
         <Campo
           rotulo="Código da Patinha"
-          placeholder="NIMA-0001"
-          autoCapitalize="characters"
+          placeholder="nima-0001"
+          autoCapitalize="none"
           autoCorrect={false}
           value={codigoResgate}
           onChangeText={setCodigoResgate}
