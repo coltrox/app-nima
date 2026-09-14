@@ -22,16 +22,13 @@ import * as Location from 'expo-location';
 import { BRAND } from '../../../theme';
 import t from '../../../theme/telaStyles';
 import PrecisaoGps from '../../components/PrecisaoGps';
-import useAcelerometro from '../../../hooks/useAcelerometro';
 import avistamentos from '../../../services/avistamentos';
-import { LIMITE_G } from '../../../services/hardware';
 
 // Reportar avistamento de um animal do Mural de Desaparecidos.
 //
 // Junta os recursos nativos do desafio:
 //  - Câmera com tratamento de "Não perguntar novamente" (canAskAgain: false);
 //  - GPS com selo de precisão (RF02);
-//  - Trava de segurança do acelerômetro no envio (> 2.0g bloqueia);
 //  - Registro salvo no aparelho (RF01) — ver services/avistamentos.
 // Qualquer recurso ausente vira mensagem na tela, nunca crash (RNF01).
 
@@ -154,10 +151,8 @@ const AvistamentoScreen = ({ navigation }) => {
     lerGps();
   }, [lerGps]);
 
-  // ---------- Acelerômetro + envio ----------
-  const acelerometro = useAcelerometro();
+  // ---------- Envio ----------
   const [observacao, setObservacao] = useState('');
-  const [verificando, setVerificando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erroEnvio, setErroEnvio] = useState(null);
 
@@ -165,17 +160,6 @@ const AvistamentoScreen = ({ navigation }) => {
     setErroEnvio(null);
     if (!descricao.trim()) {
       setErroEnvio('Descreva o animal que você viu.');
-      return;
-    }
-
-    setVerificando(true);
-    const { disponivel, estavel, pico } = await acelerometro.verificarEstabilidade();
-    setVerificando(false);
-
-    if (disponivel && !estavel) {
-      const detalhe = `Pico de ${pico.toFixed(2)}g (limite ${LIMITE_G.toFixed(1)}g). Segure o celular firme, fique parado e envie de novo.`;
-      setErroEnvio(`Instabilidade Física Detectada. ${detalhe}`);
-      Alert.alert('Instabilidade Física Detectada', detalhe);
       return;
     }
 
@@ -187,8 +171,6 @@ const AvistamentoScreen = ({ navigation }) => {
         observacao: observacao.trim(),
         coords: gps.coords || null,
         precisao: Number.isFinite(gps.precisao) ? gps.precisao : null,
-        picoG: pico,
-        sensorDisponivel: disponivel,
       });
       Alert.alert('Avistamento registrado', 'Salvo neste aparelho. Consulte em "Meus avistamentos", mesmo sem internet.');
       navigation.replace('MeusAvistamentos');
@@ -199,7 +181,7 @@ const AvistamentoScreen = ({ navigation }) => {
     }
   };
 
-  const ocupado = verificando || salvando;
+  const ocupado = salvando;
 
   // ---------- Blocos ----------
   const blocoPet = (
@@ -319,40 +301,6 @@ const AvistamentoScreen = ({ navigation }) => {
     </View>
   );
 
-  const acima = acelerometro.atual > LIMITE_G;
-  const blocoEstabilidade = (
-    <View style={t.card}>
-      <Text style={t.cardTitulo}>Estabilidade do aparelho</Text>
-      {acelerometro.disponivel === false ? (
-        <Text style={t.cardTexto}>
-          Sensor de movimento indisponível neste aparelho. A trava de segurança fica desativada, mas o envio continua funcionando.
-        </Text>
-      ) : (
-        <>
-          <View style={[t.cardLinha, { gap: 10 }]}>
-            <View style={t.barraBg}>
-              <View
-                style={[
-                  t.barraFill,
-                  {
-                    width: `${Math.min(acelerometro.atual / 3, 1) * 100}%`,
-                    backgroundColor: acima ? BRAND.danger : BRAND.success,
-                  },
-                ]}
-              />
-            </View>
-            <Text style={[e.valorG, { color: acima ? BRAND.danger : BRAND.ink }]}>
-              {acelerometro.atual.toFixed(2)} g
-            </Text>
-          </View>
-          <Text style={t.cardTexto}>
-            Parado, o celular marca cerca de 1g. Acima de {LIMITE_G.toFixed(1)}g (tranco ou queda) o envio é bloqueado.
-          </Text>
-        </>
-      )}
-    </View>
-  );
-
   const blocoEnvio = (
     <>
       <View style={t.card}>
@@ -387,7 +335,7 @@ const AvistamentoScreen = ({ navigation }) => {
       >
         {ocupado ? <ActivityIndicator color="#8A8577" /> : <Ionicons name="send" size={18} color="#fff" />}
         <Text style={[t.botaoTexto, ocupado && t.botaoTextoDesabilitado]}>
-          {verificando ? 'Mantenha o celular firme…' : salvando ? 'Salvando…' : 'Enviar avistamento'}
+          {salvando ? 'Salvando…' : 'Enviar avistamento'}
         </Text>
       </TouchableOpacity>
     </>
@@ -422,7 +370,6 @@ const AvistamentoScreen = ({ navigation }) => {
             </View>
             <View style={e.coluna}>
               {blocoGps}
-              {blocoEstabilidade}
               {blocoEnvio}
             </View>
           </View>
@@ -431,7 +378,6 @@ const AvistamentoScreen = ({ navigation }) => {
             {blocoPet}
             {blocoFoto}
             {blocoGps}
-            {blocoEstabilidade}
             {blocoEnvio}
           </>
         )}
@@ -471,8 +417,6 @@ const e = StyleSheet.create({
   atualizar: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 },
   atualizarTexto: { fontSize: 13.5, fontFamily: 'Nunito_700Bold', color: BRAND.blue },
   coords: { fontSize: 13, fontFamily: 'Nunito_600SemiBold', color: BRAND.inkSoft },
-
-  valorG: { width: 64, textAlign: 'right', fontSize: 15, fontFamily: 'Nunito_800ExtraBold' },
 
   enviar: { marginTop: 16, marginHorizontal: '5.5%' },
 });

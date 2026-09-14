@@ -3,17 +3,7 @@
 // Ficam fora das telas para serem fáceis de explicar e testar: nenhuma função
 // aqui toca em sensor ou permissão, só interpreta números.
 //
-// Importadores: hooks/useAcelerometro, components/PrecisaoGps, App/Avistamento.
-
-// Acima disso o envio é bloqueado (movimento brusco ou queda do aparelho).
-export const LIMITE_G = 2.0;
-
-/**
- * Aceleração vetorial agregada: |a| = √(x² + y² + z²).
- * O expo-sensors já entrega cada eixo em g, então parado sobre a mesa o
- * resultado fica perto de 1g (só a gravidade).
- */
-export const magnitudeG = ({ x = 0, y = 0, z = 0 } = {}) => Math.sqrt(x * x + y * y + z * z);
+// Importador: components/PrecisaoGps.
 
 /**
  * Qualidade do sinal de GPS a partir do raio de incerteza (coords.accuracy, em metros).

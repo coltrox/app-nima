@@ -6,8 +6,7 @@
 //
 // Formato de cada item:
 //   { id, criadoEm (ISO), descricao, foto (uri|null), observacao,
-//     coords ({ latitude, longitude }|null), precisao (m|null),
-//     picoG (g|null), sensorDisponivel (bool) }
+//     coords ({ latitude, longitude }|null), precisao (m|null) }
 //
 // Importadores: App/Avistamento (salvar), App/MeusAvistamentos (listar/remover).
 import AsyncStorage from '@react-native-async-storage/async-storage';

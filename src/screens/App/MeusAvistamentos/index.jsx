@@ -91,12 +91,6 @@ const ItemAvistamento = ({ item, onRemover }) => {
         )}
 
         {item.observacao ? <Text style={t.cardTexto}>“{item.observacao}”</Text> : null}
-
-        <Text style={[e.meta, { marginTop: 8 }]}>
-          {item.sensorDisponivel && Number.isFinite(item.picoG)
-            ? `Estabilidade no envio: ${item.picoG.toFixed(2)}g`
-            : 'Enviado sem sensor de movimento'}
-        </Text>
       </View>
     </View>
   );
