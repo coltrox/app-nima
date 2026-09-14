@@ -75,7 +75,9 @@ npm install
 npx expo start
 ```
 
-1. Instale o **Expo Go** no celular (Android ou iOS), na mesma rede Wi-Fi do computador.
+**Requisitos:** Node.js 20 ou superior. O projeto usa o **Expo SDK 57** (React Native 0.86).
+
+1. Instale o **Expo Go** atualizado (compatível com o SDK 57) no celular Android ou iOS, na mesma rede Wi-Fi do computador.
 2. Leia o QR Code do terminal.
 3. Faça login como tutor → **Mural de desaparecidos** → **Reportar avistamento**.
 
