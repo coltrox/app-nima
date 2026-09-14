@@ -3,7 +3,7 @@
     "name": "nima",
     "slug": "nima",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -26,7 +26,20 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O Nima usa a câmera para você fotografar um animal desaparecido que avistou.",
+          "photosPermission": "O Nima acessa suas fotos para anexar a imagem de um animal."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Nima usa sua localização para marcar onde o animal foi avistado e mostrar pets próximos."
+        }
+      ]
     ]
   }
 }

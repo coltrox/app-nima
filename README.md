@@ -56,6 +56,37 @@ APP-NIMA/
 └── package.json            # Manifesto do projeto e scripts de execução
 ```
 
+## 📡 Hardware & Recursos Nativos — Reportar Avistamento
+
+Fluxo criado para a atividade **The Code Challenge (Nível Pleno)**. No **Mural de Desaparecidos**, o tutor que viu um animal toca em **Reportar avistamento**, tira uma foto, marca a localização e envia. Tudo fica salvo no aparelho.
+
+| Requisito | Onde está | Como funciona |
+| :--- | :--- | :--- |
+| **Pleno: trava do acelerômetro** | `src/hooks/useAcelerometro.js`, `src/services/hardware.js` | Lê o `Accelerometer` (expo-sensors) a 10 Hz e calcula a aceleração agregada `√(x² + y² + z²)` em g. Ao tocar em *Enviar*, observa 1 s antes do toque + 1,5 s depois; se o pico passar de **2.0g**, o envio é bloqueado com o alerta **"Instabilidade Física Detectada"**. |
+| Câmera + permissão negada | `src/screens/App/Avistamento/index.jsx` | `requestCameraPermissionsAsync()`: se `canAskAgain` for `false`, mostra o passo a passo e o botão **Abrir configurações** (`Linking.openSettings()`); ao voltar ao app, a permissão é conferida de novo. |
+| **RF01** Histórico local | `src/services/avistamentos.js`, `src/screens/App/MeusAvistamentos` | AsyncStorage (chave `@nima_avistamentos`). A tela *Meus avistamentos* funciona sem internet. |
+| **RF02** Precisão do GPS | `src/screens/components/PrecisaoGps` | `coords.accuracy`: 🟢 < 10 m · 🟡 10–30 m · 🔴 > 30 m. |
+| **RNF01** Degradação graciosa | Avistamento / useAcelerometro | GPS desligado (`hasServicesEnabledAsync`), permissão negada, sem câmera, sem sensor ou GPS sem sinal (timeout de 15 s e depois a última posição conhecida): cada caso mostra uma mensagem, e nada derruba o app. |
+| **RNF02** Responsividade | Avistamento, MeusAvistamentos, Desaparecidos | `orientation: default`; `useWindowDimensions` troca para 2 colunas em paisagem e a grade do mural se ajusta de 2 a 4 colunas. |
+
+### Como rodar
+
+```bash
+npm install
+npx expo start
+```
+
+1. Instale o **Expo Go** no celular (Android ou iOS), na mesma rede Wi-Fi do computador.
+2. Leia o QR Code do terminal.
+3. Faça login como tutor → **Mural de desaparecidos** → **Reportar avistamento**.
+
+**Roteiro de teste**
+* **Trava 2.0g:** toque em *Enviar* e dê um tranco no celular → alerta "Instabilidade Física Detectada". Parado, o envio passa.
+* **Não perguntar novamente:** negue a câmera duas vezes (Android) ou desative em Ajustes (iOS) → aparecem as instruções e o botão das configurações. No Expo Go as configurações abertas são as do próprio Expo Go.
+* **GPS:** desligue a localização → aparece a mensagem de GPS desligado; ligue e toque em *Atualizar* → o selo colorido aparece.
+* **Offline:** ative o modo avião e abra *Meus avistamentos*.
+* **Paisagem:** gire o aparelho (a rotação automática precisa estar ligada).
+
 ## 🛠️ Tecnologias Utilizadas
 
 O projeto foi construído utilizando tecnologias modernas para garantir alta performance, modularidade e facilidade de manutenção:
