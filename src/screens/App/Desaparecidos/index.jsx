@@ -24,8 +24,7 @@ const DesaparecidosScreen = ({ navigation }) => {
   const colunas = width >= 900 ? 4 : width >= 600 ? 3 : 2;
   const larguraCard = (width - PAD * 2 - 12 * (colunas - 1)) / colunas;
 
-  const reportar = () =>
-    navigation.navigate('Avistamento', { pets: lista.map((a) => ({ id: a.id, nome: a.nome })) });
+  const reportar = () => navigation.navigate('Avistamento');
 
   return (
     <SafeAreaView style={t.tela}>

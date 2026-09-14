@@ -36,7 +36,6 @@ import { LIMITE_G } from '../../../services/hardware';
 // Qualquer recurso ausente vira mensagem na tela, nunca crash (RNF01).
 
 const TEMPO_GPS_MS = 15000;
-const DESCONHECIDO = { id: 'desconhecido', nome: 'Não sei qual é' };
 
 const comTempoLimite = (promessa, ms) =>
   Promise.race([promessa, new Promise((_, rejeitar) => setTimeout(() => rejeitar(new Error('timeout')), ms))]);
@@ -51,12 +50,12 @@ const PASSOS_CONFIG_CAMERA =
         'Volte para o Nima e toque em "Tirar foto".',
       ];
 
-const AvistamentoScreen = ({ navigation, route }) => {
+const AvistamentoScreen = ({ navigation }) => {
   const { width, height } = useWindowDimensions();
   const paisagem = width > height;
 
-  const pets = [...(route.params?.pets || []), DESCONHECIDO];
-  const [petId, setPetId] = useState(route.params?.petId ?? null);
+  // Descrição livre do animal: quem vê um bicho na rua raramente sabe qual é do mural.
+  const [descricao, setDescricao] = useState('');
 
   // ---------- Câmera ----------
   // 'livre' | 'negada' (pode pedir de novo) | 'bloqueada' (canAskAgain: false) | 'indisponivel'
@@ -164,8 +163,8 @@ const AvistamentoScreen = ({ navigation, route }) => {
 
   const enviar = async () => {
     setErroEnvio(null);
-    if (!petId) {
-      setErroEnvio('Escolha qual animal você viu.');
+    if (!descricao.trim()) {
+      setErroEnvio('Descreva o animal que você viu.');
       return;
     }
 
@@ -182,10 +181,8 @@ const AvistamentoScreen = ({ navigation, route }) => {
 
     setSalvando(true);
     try {
-      const pet = pets.find((p) => p.id === petId);
       await avistamentos.salvar({
-        petId,
-        petNome: pet?.nome || DESCONHECIDO.nome,
+        descricao: descricao.trim(),
         foto,
         observacao: observacao.trim(),
         coords: gps.coords || null,
@@ -207,24 +204,17 @@ const AvistamentoScreen = ({ navigation, route }) => {
   // ---------- Blocos ----------
   const blocoPet = (
     <View style={t.card}>
-      <Text style={t.cardTitulo}>Qual animal você viu?</Text>
-      <View style={e.chips}>
-        {pets.map((p) => {
-          const ativo = p.id === petId;
-          return (
-            <TouchableOpacity
-              key={String(p.id)}
-              style={[e.chip, ativo && e.chipAtivo]}
-              onPress={() => setPetId(p.id)}
-              activeOpacity={0.85}
-            >
-              <Text style={[e.chipTexto, ativo && e.chipTextoAtivo]} numberOfLines={1}>
-                {p.nome}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <Text style={t.cardTitulo}>Como é o animal?</Text>
+      <Text style={[t.cardTexto, { marginBottom: 10 }]}>Espécie, cor, porte, coleira ou qualquer detalhe que ajude a reconhecer.</Text>
+      <TextInput
+        style={[t.campo, t.campoMultilinha, { height: 90 }]}
+        value={descricao}
+        onChangeText={setDescricao}
+        placeholder="Ex.: cachorro caramelo, porte médio, coleira vermelha"
+        placeholderTextColor={BRAND.inkSoft}
+        multiline
+        maxLength={200}
+      />
     </View>
   );
 
@@ -453,20 +443,6 @@ const AvistamentoScreen = ({ navigation, route }) => {
 const e = StyleSheet.create({
   colunas: { flexDirection: 'row', alignItems: 'flex-start' },
   coluna: { flex: 1, minWidth: 0 },
-
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  chip: {
-    maxWidth: '100%',
-    borderWidth: 1.5,
-    borderColor: BRAND.border,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    backgroundColor: BRAND.card,
-  },
-  chipAtivo: { borderColor: BRAND.blue, backgroundColor: '#E7EEFB' },
-  chipTexto: { fontSize: 13.5, fontFamily: 'Nunito_600SemiBold', color: BRAND.ink },
-  chipTextoAtivo: { color: BRAND.blue, fontFamily: 'Nunito_800ExtraBold' },
 
   foto: { width: '100%', borderRadius: 14, marginTop: 12 },
   fotoVazia: {

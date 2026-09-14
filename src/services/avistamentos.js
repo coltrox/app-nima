@@ -5,7 +5,7 @@
 // tutor que viu um animal do Mural de Desaparecidos.
 //
 // Formato de cada item:
-//   { id, criadoEm (ISO), petId, petNome, foto (uri|null), observacao,
+//   { id, criadoEm (ISO), descricao, foto (uri|null), observacao,
 //     coords ({ latitude, longitude }|null), precisao (m|null),
 //     picoG (g|null), sensorDisponivel (bool) }
 //

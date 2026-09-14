@@ -67,8 +67,8 @@ const ItemAvistamento = ({ item, onRemover }) => {
 
       <View style={e.corpo}>
         <View style={e.topo}>
-          <Text style={[t.petNome, { flex: 1 }]} numberOfLines={1}>
-            {item.petNome}
+          <Text style={[t.petNome, { flex: 1 }]} numberOfLines={2}>
+            {item.descricao || item.petNome}
           </Text>
           <TouchableOpacity onPress={() => onRemover(item)} hitSlop={10} accessibilityLabel="Excluir avistamento">
             <Ionicons name="trash-outline" size={19} color={BRAND.danger} />
@@ -123,7 +123,7 @@ const MeusAvistamentosScreen = ({ navigation }) => {
   );
 
   const remover = (item) =>
-    confirmar('Excluir avistamento?', `O registro de ${item.petNome} sai deste aparelho.`, async () => {
+    confirmar('Excluir avistamento?', 'O registro sai deste aparelho.', async () => {
       try {
         setLista(await avistamentos.remover(item.id));
       } catch {
