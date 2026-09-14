@@ -45,6 +45,8 @@ import Vagas from './src/screens/App/Vagas/index';
 import Ongs from './src/screens/App/Ongs/index';
 import Desaparecidos from './src/screens/App/Desaparecidos/index';
 import Patinha from './src/screens/App/Patinha/index';
+import Avistamento from './src/screens/App/Avistamento/index';
+import MeusAvistamentos from './src/screens/App/MeusAvistamentos/index';
 
 const Stack = createNativeStackNavigator();
 
@@ -137,6 +139,9 @@ export default function App() {
         {/* Antiperda */}
         <Stack.Screen name="SmartTag" component={SmartTag} />
         <Stack.Screen name="Desaparecidos" component={Desaparecidos} />
+        {/* Avistamento: câmera + GPS + acelerômetro, histórico offline */}
+        <Stack.Screen name="Avistamento" component={Avistamento} />
+        <Stack.Screen name="MeusAvistamentos" component={MeusAvistamentos} />
         {/* Como conseguir uma Patinha: comprar, ou ganhar doando/sendo voluntário */}
         <Stack.Screen name="Patinha" component={Patinha} />
 
