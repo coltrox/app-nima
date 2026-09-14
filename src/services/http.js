@@ -14,8 +14,34 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, RENDER_URL } from '../config/api';
+import { irParaLogin } from './navegacao';
 
 export const TOKEN_KEY = '@nima_token';
+
+const CHAVES_SESSAO = ['@nima_token', '@nima_user_role', '@nima_user_name', '@nima_profile_completed'];
+
+// O token do Supabase expira (~1h) e o app não o renova. Com "Lembrar-me" a Home
+// abria com um token vencido e toda chamada voltava 403. O backend responde
+// "Token inválido ou expirado." nesse caso — olhamos a mensagem, não só o status,
+// porque 403 também significa "sem permissão" em outras rotas (ex.: MyPet).
+const sessaoExpirou = (erro) => {
+  const status = erro?.response?.status;
+  const texto = String(erro?.response?.data?.message || erro?.response?.data?.error || '');
+  const rotaDeLogin = /\/auth\//.test(erro?.config?.url || '');
+  return !rotaDeLogin && (status === 401 || (status === 403 && /token inv[aá]lido ou expirado/i.test(texto)));
+};
+
+let saindo = false;
+async function encerrarSessao() {
+  if (saindo) return;
+  saindo = true;
+  try {
+    await AsyncStorage.multiRemove(CHAVES_SESSAO);
+  } finally {
+    irParaLogin();
+    saindo = false;
+  }
+}
 
 const http = axios.create({
   baseURL: API_URL,
@@ -44,6 +70,7 @@ http.interceptors.response.use(
       cfg.baseURL = RENDER_URL;
       return http(cfg);
     }
+    if (sessaoExpirou(erro)) await encerrarSessao();
     return Promise.reject(erro);
   }
 );

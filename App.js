@@ -16,6 +16,7 @@ import {
 // vazio (tofu) até carregar. Pré-carregando aqui, a tela só aparece com todos
 // os glyphs prontos — os três conjuntos que o app usa.
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { navigationRef } from './src/services/navegacao';
 
 // --- Autenticação ---
 import Login from './src/screens/Auth/Login/index';
@@ -120,7 +121,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar style="dark" />
       <Stack.Navigator
         initialRouteName={initialRoute}
