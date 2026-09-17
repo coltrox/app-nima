@@ -1,28 +1,19 @@
 // Fonte única da URL do backend. TODO service novo importa daqui —
 // nunca hardcodar URL em tela/service (foi assim que o app ficou meses
 // apontando pro Render antigo e morto).
-//
-// EM DESENVOLVIMENTO (__DEV__), aponta para o backend LOCAL rodando na sua
-// máquina, derivando o IP do próprio host do Expo (Constants.expoConfig.hostUri,
-// ex.: "192.168.0.174:8081"). Assim funciona no celular físico (Expo Go), no
-// emulador e no web sem precisar chumbar IP — o backend escuta em 0.0.0.0:3000.
-// Isso é o que permite o app conversar com o n8n local (o backend local alcança
-// http://localhost:5678). EM PRODUÇÃO (build publicado), usa o Render.
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
 // Porta do backend Express local (src/server.js → PORT || 3000).
 const PORTA_BACKEND_LOCAL = 3000;
 
-// Backend de produção (ver nima-backend/docs/AMBIENTES.md). É também o
-// fallback do http.js quando o backend local não responde.
+// Backend de produção (ver nima-backend/docs/AMBIENTES.md).
 export const RENDER_URL = 'https://nima-backend-ofc.onrender.com/api';
 
-// "192.168.0.174:8081" | "localhost:8081" → só o host, sem a porta do Metro.
+// Variable global mutável para armazenar a URL ativa em tempo de execução
+export let API_URL = RENDER_URL;
+
 function hostDoExpo() {
-  // Web (Expo web): Constants.hostUri costuma vir vazio no navegador — usa o
-  // host da própria página. Sem isto, o app caía no fallback do Render (que não
-  // tem as rotas novas, ex.: POST /animais/:id/match → "Cannot POST").
   if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location?.hostname) {
     return window.location.hostname;
   }
@@ -36,12 +27,38 @@ function hostDoExpo() {
   return host || null;
 }
 
-function resolverBaseURL() {
+// Testa se o backend local responde a requisições curtas (timeout de 1.5s)
+async function verificarBackendLocal(urlLocal) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+    // Tenta bater na raiz da API ou no endpoint de healthcheck
+    await fetch(urlLocal, { method: 'GET', signal: controller.signal });
+    clearTimeout(timeoutId);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function resolverBaseURL() {
   if (__DEV__) {
     const host = hostDoExpo();
-    if (host) return `http://${host}:${PORTA_BACKEND_LOCAL}/api`;
+    if (host) {
+      const urlLocal = `http://${host}:${PORTA_BACKEND_LOCAL}/api`;
+      const localAtivo = await verificarBackendLocal(urlLocal);
+      
+      if (localAtivo) {
+        API_URL = urlLocal;
+        return urlLocal;
+      }
+    }
   }
+  
+  API_URL = RENDER_URL;
   return RENDER_URL;
 }
 
-export const API_URL = resolverBaseURL();
+// Executa a checagem no carregamento do módulo
+resolverBaseURL();
