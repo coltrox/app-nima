@@ -12,6 +12,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Image,
+  StyleSheet,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ import {
 } from '@expo-google-fonts/nunito';
 import styles from './styles';
 import authService from '../authService';
+import { ehServidorInacessivel, CREDENCIAIS_DEMO } from '../../../demo/modoDemo';
 import Campo from '../../components/Campo';
 import { BRAND } from '../../../theme';
 
@@ -40,6 +42,9 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [popupConfig, setPopupConfig] = useState({ show: false, message: '', type: 'success' });
+  // Vira true quando o login nao alcancou servidor nenhum: so entao a tela
+  // oferece a demonstracao offline.
+  const [servidorFora, setServidorFora] = useState(false);
 
   const popupFade = useRef(new Animated.Value(0)).current;
   const popupSlide = useRef(new Animated.Value(10)).current;
@@ -153,6 +158,34 @@ const LoginScreen = () => {
 
       handleAuthNavigation();
     } catch (error) {
+      // Servidor fora do ar não é culpa de quem está digitando: em vez de só
+      // mostrar o erro, oferecemos a demonstração offline. Com servidor NO AR,
+      // `ehServidorInacessivel` é falso e nada disto aparece — senha errada
+      // continua sendo recusada normalmente.
+      if (ehServidorInacessivel(error) || /sem conex|demonstra/i.test(String(error))) {
+        setServidorFora(true);
+      }
+      triggerPopup(String(error), 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /** Entra na demonstração offline (botão que só aparece com o servidor fora). */
+  const entrarEmDemonstracao = async () => {
+    setIsLoading(true);
+    try {
+      const data = await authService.entrarEmDemonstracao();
+      await AsyncStorage.multiSet([
+        ['@nima_token', data.token],
+        ['@nima_user_role', data.user.cargo],
+        ['@nima_user_name', data.user.nome],
+        ['@nima_email', data.user.email],
+        ['@nima_remember_me', 'false'],
+      ]);
+      await AsyncStorage.removeItem('@nima_profile_completed');
+      handleAuthNavigation();
+    } catch (error) {
       triggerPopup(String(error), 'error');
     } finally {
       setIsLoading(false);
@@ -248,6 +281,30 @@ const LoginScreen = () => {
                 )}
               </TouchableOpacity>
 
+              {/* Demonstração offline: aparece SÓ depois de uma tentativa de
+                  login que não alcançou servidor nenhum. Com o servidor no ar
+                  este bloco nunca é renderizado, e a credencial é validada
+                  normalmente pelo backend. */}
+              {servidorFora && (
+                <View style={estilosDemo.caixa}>
+                  <Text style={estilosDemo.titulo}>Servidor fora do ar</Text>
+                  <Text style={estilosDemo.texto}>
+                    Você pode ver o aplicativo funcionando com os dados da última
+                    sincronização. Nada é enviado nem alterado.
+                  </Text>
+                  <TouchableOpacity
+                    style={estilosDemo.botao}
+                    activeOpacity={0.85}
+                    onPress={entrarEmDemonstracao}
+                    disabled={isLoading}
+                  >
+                    <Ionicons name="cloud-offline-outline" size={16} color={BRAND.ink} />
+                    <Text style={estilosDemo.botaoTexto}>Entrar em modo demonstração</Text>
+                  </TouchableOpacity>
+                  <Text style={estilosDemo.rodape}>Conta: {CREDENCIAIS_DEMO.email}</Text>
+                </View>
+              )}
+
               {/* Proteção de Dados */}
               <View style={styles.protectionRow}>
                 <Ionicons name="shield-checkmark-outline" size={14} color="#7F8C8D" />
@@ -314,5 +371,53 @@ const LoginScreen = () => {
     </SafeAreaView>
   );
 };
+
+// Estilos do bloco de demonstração. Ficam aqui, e não em ./styles, porque são
+// de um estado excepcional da tela (servidor fora) e não da identidade do
+// Login — mantê-los juntos do JSX que os usa facilita remover tudo depois.
+const estilosDemo = StyleSheet.create({
+  caixa: {
+    marginTop: 18,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF14',
+    borderWidth: 1,
+    borderColor: BRAND.honey,
+  },
+  titulo: {
+    fontFamily: 'Nunito_800ExtraBold',
+    fontSize: 14,
+    color: BRAND.honey,
+    marginBottom: 4,
+  },
+  texto: {
+    fontFamily: 'Nunito_400Regular',
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#FFFFFFCC',
+    marginBottom: 12,
+  },
+  botao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: BRAND.honey,
+  },
+  botaoTexto: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 13,
+    color: BRAND.ink,
+  },
+  rodape: {
+    fontFamily: 'Nunito_400Regular',
+    fontSize: 10,
+    color: '#FFFFFF80',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+});
 
 export default LoginScreen;

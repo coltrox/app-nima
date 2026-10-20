@@ -1,8 +1,20 @@
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL as BASE } from '../../config/api';
+import http from '../../services/http';
+import {
+  CREDENCIAIS_DEMO,
+  TOKEN_DEMO,
+  ativarDemo,
+  demoAtivo,
+  ehServidorInacessivel
+} from '../../demo/modoDemo';
 
-const API_URL = `${BASE}/auth`;
+// Este arquivo usava `axios` cru com a URL montada à mão. Isso o deixava fora
+// de tudo o que o cliente compartilhado (services/http.js) já resolve: timeout
+// de 60s (o Render free hiberna e o 1º request leva ~50s), fallback automático
+// para o Render quando o backend local não responde, e o adapter do modo
+// demonstração. Justamente no login, que é a PRIMEIRA coisa que acontece na
+// apresentação. Agora tudo passa pelo `http`, e os caminhos são relativos.
+const AUTH = '/auth';
 
 /**
  * Função interna baseada na fórmula do Módulo 11 para validação real de CPF.
@@ -47,21 +59,74 @@ const validateCPF = (rawCpf) => {
   return true;
 };
 
+/** Sessão sintética da demonstração, no mesmo formato que o backend devolve. */
+function sessaoDemo(email, senha, forcado = false) {
+  const credencialBate =
+    String(email || '').trim().toLowerCase() === CREDENCIAIS_DEMO.email &&
+    String(senha || '') === CREDENCIAIS_DEMO.senha;
+
+  if (!forcado && !credencialBate) {
+    throw 'Sem servidor. Nesta situação só a conta de demonstração entra.';
+  }
+
+  return {
+    token: TOKEN_DEMO,
+    demonstracao: true,
+    user: {
+      id: 'demo-tutor',
+      nome: CREDENCIAIS_DEMO.nome,
+      email: CREDENCIAIS_DEMO.email,
+      cargo: 'usuario',
+      dono: true,
+      permissoes: {}
+    }
+  };
+}
+
+/** Liga a demonstração se a credencial for a da conta demo. */
+async function tentarEntrarEmDemo(email, senha) {
+  const bate =
+    String(email || '').trim().toLowerCase() === CREDENCIAIS_DEMO.email &&
+    String(senha || '') === CREDENCIAIS_DEMO.senha;
+  if (!bate) return null;
+  await ativarDemo();
+  return sessaoDemo(email, senha);
+}
+
 const authService = {
   /**
    * Realiza o login enviando credenciais ao backend.
    */
+  /**
+   * Login. Com servidor no ar, quem decide é SEMPRE o backend — senha errada
+   * continua sendo senha errada e nada de demonstração acontece.
+   *
+   * Só quando não houve servidor nenhum (erro de rede, timeout, ou o 503
+   * SERVIDOR_INDISPONIVEL do backend quando o banco está fora) o app cai na
+   * demonstração, e mesmo aí apenas para as credenciais da conta demo.
+   */
   login: async (identifier, password) => {
+    // Já em demonstração (o app foi reaberto sem servidor): resolve local.
+    if (demoAtivo()) return sessaoDemo(identifier, password);
+
     try {
-      const response = await axios.post(`${API_URL}/login`, { 
-        email: identifier, 
-        password 
-      });
+      const response = await http.post(`${AUTH}/login`, { email: identifier, password });
       return response.data;
     } catch (error) {
+      if (ehServidorInacessivel(error)) {
+        const sessao = await tentarEntrarEmDemo(identifier, password);
+        if (sessao) return sessao;
+        throw 'Sem conexão com o servidor. Use a conta de demonstração para ver o app offline.';
+      }
       const message = error.response?.data?.message || 'Erro de conexão';
       throw message;
     }
+  },
+
+  /** Entra na demonstração de propósito, pelo botão da tela de Login. */
+  entrarEmDemonstracao: async () => {
+    await ativarDemo();
+    return sessaoDemo(CREDENCIAIS_DEMO.email, CREDENCIAIS_DEMO.senha, true);
   },
 
   /**
@@ -76,7 +141,7 @@ const authService = {
     }
 
     try {
-      const response = await axios.post(`${API_URL}/register`, {
+      const response = await http.post(`${AUTH}/register`, {
         nome,
         email,
         cpf: cpf.replace(/[^\d]+/g, ''), // Envia estritamente os números limpos ao backend
@@ -95,7 +160,7 @@ const authService = {
    */
   forgotPassword: async (email) => {
     try {
-      const response = await axios.post(`${API_URL}/forgot-password`, { email });
+      const response = await http.post(`${AUTH}/forgot-password`, { email });
       return response.data;
     } catch (error) {
       const message = error.response?.data?.message || 'Erro ao solicitar recuperação.';
@@ -108,7 +173,7 @@ const authService = {
    */
   verifyCode: async (email, code) => {
     try {
-      const response = await axios.post(`${API_URL}/verify-code`, { email, code });
+      const response = await http.post(`${AUTH}/verify-code`, { email, code });
       return response.data;
     } catch (error) {
       const message = error.response?.data?.message || 'Código inválido.';
@@ -122,7 +187,7 @@ const authService = {
    */
   resetPassword: async (email, code, newPassword) => {
     try {
-      const response = await axios.post(`${API_URL}/reset-password`, { 
+      const response = await http.post(`${AUTH}/reset-password`, { 
         email, 
         code, 
         password: newPassword 
@@ -149,7 +214,7 @@ const authService = {
   completeProfile: async (profileData) => {
     try {
       const token = await AsyncStorage.getItem('@nima_token');
-      const response = await axios.post(`${API_URL}/complete-profile`, profileData, {
+      const response = await http.post(`${AUTH}/complete-profile`, profileData, {
         headers: {
           Authorization: `Bearer ${token}`
         }

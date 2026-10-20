@@ -15,6 +15,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, RENDER_URL } from '../config/api';
 import { irParaLogin } from './navegacao';
+import { demoAtivo, adaptadorDemo } from '../demo/modoDemo';
 
 export const TOKEN_KEY = '@nima_token';
 
@@ -52,6 +53,12 @@ const http = axios.create({
 http.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  // Modo demonstração: troca o adapter do axios, então a requisição é resolvida
+  // pelo snapshot local e NADA sai do aparelho. Feito aqui, no cliente único,
+  // para que nenhuma tela nem service precise saber que a demonstração existe.
+  if (demoAtivo()) config.adapter = adaptadorDemo;
+
   return config;
 });
 
