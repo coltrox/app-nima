@@ -1,6 +1,7 @@
 // Animais: feed recomendado, vitrine, ficha e mural de desaparecidos.
 // Importadores: telas Home, Match, PetDetails, Desaparecidos e MyPet.
 import http, { mensagemDoErro, statusDoErro } from './http';
+import { getComCache, limparChave } from './cache';
 
 // O backend devolve `fotos` como array de URLs (pode vir vazio).
 export const primeiraFoto = (animal) =>
@@ -10,28 +11,29 @@ const animalService = {
   /**
    * Feed recomendado (RF06). Exige questionário respondido: sem ele o backend
    * devolve 400 — a tela usa isso para convidar o tutor a responder.
+   * Cache: 5 min. `todos`/`raio` entram na chave do cache.
    */
   recomendados: async (opcoes = {}) => {
-    // `todos` traz também os pets de fora do raio (ver de longe); `raio` custom
-    // sobrescreve os 50 km padrão.
-    const params = [];
-    if (opcoes.todos) params.push('todos=1');
-    if (opcoes.raio) params.push(`raio=${encodeURIComponent(opcoes.raio)}`);
-    const qs = params.length ? `?${params.join('&')}` : '';
-    const { data } = await http.get(`/animais/recomendados${qs}`);
-    return data;
+    const params = {};
+    if (opcoes.todos) params.todos = '1';
+    if (opcoes.raio) params.raio = String(opcoes.raio);
+    const { dados } = await getComCache('/animais/recomendados', {
+      ttlSegundos: 5 * 60,
+      params,
+    });
+    return dados;
   },
 
-  /** Vitrine completa (não depende de questionário). */
+  /** Vitrine completa (não depende de questionário). Cache: 5 min. */
   listarTodos: async () => {
-    const { data } = await http.get('/animais');
-    return data;
+    const { dados } = await getComCache('/animais', { ttlSegundos: 5 * 60 });
+    return dados;
   },
 
   /**
    * Recomendados com queda suave para a vitrine geral.
-   * Retorna { lista, personalizado, aviso } — `personalizado: false` significa
-   * que veio da vitrine porque o questionário ainda não foi respondido.
+   * O 400 do recomendados NÃO é cacheado (o cache só grava sucesso), então o
+   * fallback continua funcionando igual.
    */
   feed: async (opcoes = {}) => {
     try {
@@ -46,27 +48,26 @@ const animalService = {
     }
   },
 
+  /** Ficha do pet. Cache: 5 min. */
   buscarPorId: async (id) => {
-    const { data } = await http.get(`/animais/${id}`);
-    return data;
+    const { dados } = await getComCache(`/animais/${id}`, { ttlSegundos: 5 * 60 });
+    return dados;
   },
 
+  /** Mural de desaparecidos. Cache curto (2 min): urgência — dado velho engana. */
   desaparecidos: async () => {
-    const { data } = await http.get('/animais/desaparecidos');
-    return data;
+    const { dados } = await getComCache('/animais/desaparecidos', { ttlSegundos: 2 * 60 });
+    return dados;
   },
 
   // ------------------------------------------------------------ PET DO TUTOR
-  // Animal que o próprio tutor registrou (tutor_id = dono). Não entra na
-  // vitrine de adoção — é pet particular.
+  // Sem cache: dados do próprio usuário, mudam no ato do cadastro/edição.
 
-  /** Pets registrados pelo tutor. Os ADOTADOS vêm por solicitacaoService.meusPets(). */
   meus: async () => {
     const { data } = await http.get('/animais/meus');
     return data;
   },
 
-  /** Só nome e espécie são obrigatórios; o resto o backend preenche com 'Não informado'. */
   cadastrarMeu: async (pet) => {
     const { data } = await http.post('/animais/meus', pet);
     return data;
@@ -82,41 +83,29 @@ const animalService = {
     return data;
   },
 
-  /**
-   * Histórico de leituras da Patinha (RF18).
-   * ATENÇÃO: hoje a rota é restrita a ONG/desenvolvedor — um tutor recebe 403.
-   * A tela MyPet trata isso e mostra o aviso em vez de quebrar.
-   * Ver docs/ALINHAMENTO-BACKEND.md, item "leituras da Patinha".
-   */
   leituras: async (animalId) => {
     const { data } = await http.get(`/animais/${animalId}/leituras`);
     return data;
   },
 
   // ------------------------------------------------------------ MATCH SOB DEMANDA
-  // A % não aparece na vitrine. O tutor pede "Ver match" na ficha: calcula a
-  // compatibilidade da dupla (adotante × este pet), mostra e SALVA. A adoção
-  // reusa essa nota (a ONG vê a mesma). Exige questionário respondido.
+  // Sem cache: verMatch CALCULA no servidor; obterMatch reflete o estado salvo.
 
-  /** Match já salvo deste tutor para o pet: { existe, score, relatorio, via }. */
   obterMatch: async (id) => {
     const { data } = await http.get(`/animais/${id}/match`);
     return data;
   },
 
-  /** Calcula e salva o match (Fluxo 2). Retorna { score, relatorio, via }. */
   verMatch: async (id) => {
     const { data } = await http.post(`/animais/${id}/match`);
     return data;
   },
 
-  /** Atualiza a carteira de vacinação de um pet do próprio tutor (lista completa). */
   atualizarVacinasMeu: async (id, prontuario_vacinas) => {
     const { data } = await http.put(`/animais/meus/${id}/vacinas`, { prontuario_vacinas });
     return data;
   },
 
-  /** Envia uma foto para um pet do próprio tutor. `asset` vem do expo-image-picker. */
   adicionarFotoMeu: async (id, asset) => {
     const form = new FormData();
     form.append('foto', {
@@ -127,6 +116,8 @@ const animalService = {
     const { data } = await http.post(`/animais/meus/${id}/fotos`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    // A ficha do pet mudou (nova foto) → invalida o cache dela.
+    await limparChave(`/animais/${id}`);
     return data;
   },
 };

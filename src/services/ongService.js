@@ -1,5 +1,10 @@
 // ONGs (RF20/RF23): lista para o mapa, com contato e links. Importador: tela Ongs.
-import http from './http';
+//
+// Cache: 6h — catálogo estável. lat/lng entram na chave do cache, então
+// coords diferentes (GPS real vs fallback Campinas) geram entradas separadas,
+// sem uma poluir a outra. A revalidação em segundo plano corrige a lista
+// quando a rede responde, mesmo dentro do TTL.
+import { getComCache } from './cache';
 
 const ongService = {
   /**
@@ -8,8 +13,8 @@ const ongService = {
    */
   listar: async ({ lat, lng } = {}) => {
     const params = lat != null && lng != null ? { lat, lng } : undefined;
-    const { data } = await http.get('/ongs', { params });
-    return data;
+    const { dados } = await getComCache('/ongs', { ttlSegundos: 6 * 3600, params });
+    return dados;
   },
 };
 

@@ -17,6 +17,8 @@ import {
 // os glyphs prontos — os três conjuntos que o app usa.
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { navigationRef } from './src/services/navegacao';
+import { restaurarDemo } from './src/demo/modoDemo';
+import SeloDemo from './src/screens/components/SeloDemo';
 
 // --- Autenticação ---
 import Login from './src/screens/Auth/Login/index';
@@ -78,6 +80,11 @@ export default function App() {
 
     const checkLoginStatus = async () => {
       try {
+        // Quem fechou o app em modo demonstração reabre em demonstração: sem
+        // isto, o app voltaria a tentar a rede e as telas apareceriam vazias
+        // antes de alguém descobrir, de novo, que não há servidor.
+        await restaurarDemo();
+
         const token = await AsyncStorage.getItem('@nima_token');
         const wasRemembered = await AsyncStorage.getItem('@nima_remember_me');
         const role = await AsyncStorage.getItem('@nima_user_role');
@@ -122,7 +129,6 @@ export default function App() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <StatusBar style="dark" />
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
