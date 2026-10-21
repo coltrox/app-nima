@@ -1,10 +1,8 @@
-// Guias de cuidado (tela Guia). Importador: src/screens/App/Guide/index.jsx.
-//
-// O conteúdo é cadastrado pelo dev no painel web; o app só lê os ativos,
-// já ordenados por categoria e `ordem`.
-import http from './http';
+// Guias de cuidado (tela Guia). Conteúdo cadastrado pelo dev no painel web.
+// Cache: 24h — só muda quando o dev edita; e mesmo assim a revalidação
+// em segundo plano corrige na próxima abertura.
+import { getComCache } from './cache';
 
-/** Agrupa a lista plana em { categoria: [guias] }, preservando a ordem da API. */
 export function porCategoria(guias) {
   const mapa = {};
   for (const g of guias || []) {
@@ -17,8 +15,8 @@ export function porCategoria(guias) {
 
 const guiaService = {
   listar: async () => {
-    const { data } = await http.get('/guias');
-    return data;
+    const { dados } = await getComCache('/guias', { ttlSegundos: 24 * 3600 });
+    return dados;
   },
 };
 

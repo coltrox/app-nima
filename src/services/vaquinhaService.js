@@ -1,6 +1,9 @@
 // Vaquinhas (RF21): a ONG cadastra o PRÓPRIO PIX; o app só divulga.
 // Importadores: telas Donation e Home (campanha em destaque).
-import http from './http';
+//
+// Cache: 1h — campanhas mudam devagar (a ONG edita pelo painel web, não o
+// tutor). O `detalhe` tem a mesma validade; a Home pega a em destaque da lista.
+import { getComCache } from './cache';
 
 /** Formata um número como "R$ 1.234". Aceita null. */
 export const emReais = (valor) => {
@@ -27,13 +30,13 @@ export const percentualDaMeta = (vaquinha) => {
 const vaquinhaService = {
   /** Vaquinhas ativas de todas as ONGs, já com `ong: { id, nome, whatsapp, instagram }`. */
   listar: async () => {
-    const { data } = await http.get('/vaquinhas');
-    return data;
+    const { dados } = await getComCache('/vaquinhas', { ttlSegundos: 3600 });
+    return dados;
   },
 
   detalhe: async (id) => {
-    const { data } = await http.get(`/vaquinhas/${id}`);
-    return data;
+    const { dados } = await getComCache(`/vaquinhas/${id}`, { ttlSegundos: 3600 });
+    return dados;
   },
 };
 

@@ -15,10 +15,14 @@
 //
 // O backend não tem um formato de erro único: uns controladores devolvem
 // { error }, outros { message }. `mensagemDoErro` cobre os dois.
+//
+// Cache (services/cache.js): quando a sessão cai, o cache de leitura vai junto —
+// dados de perfis/vagas/favoritos de um usuário não podem aparecer pro próximo.
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../config/api';
 import { irParaLogin } from './navegacao';
+import { limparCache } from './cache';
 import { demoAtivo, adaptadorDemo } from '../demo/modoDemo';
 
 export const TOKEN_KEY = '@nima_token';
@@ -41,6 +45,8 @@ async function encerrarSessao() {
   if (saindo) return;
   saindo = true;
   try {
+    // Cache de leitura é por usuário: sai junto com a sessão.
+    await limparCache();
     await AsyncStorage.multiRemove(CHAVES_SESSAO);
   } finally {
     irParaLogin();

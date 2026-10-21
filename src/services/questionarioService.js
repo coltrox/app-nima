@@ -1,28 +1,26 @@
-// Questionário de afinidade (RF05/RF06/RF09).
-// Importadores: componente Questionario e telas Home / Match.
-//
-// As rotas ficam sob /auth porque o backend monta questionario.rotas.js em
-// '/api/auth' (ver src/app.js do nima-backend) — não é engano de prefixo.
+// Questionário de afinidade (RF05/RF06/RF09). Rotas sob /auth por design do backend.
 import http, { statusDoErro } from './http';
+import { getComCache, limparCache } from './cache';
 
 const questionarioService = {
   /**
-   * Envia as respostas. O backend espera as chaves '1'..'20' (strings),
-   * exatamente na ordem das perguntas do componente Questionario.
-   * Responde com { data, analise: { status, relatorio, score }, recomendados }.
+   * Envia as respostas. Responde com { data, analise, recomendados }.
+   * IMPORTANTE: reenviar o questionário muda o feed recomendado E o parecer —
+   * limpa o cache inteiro para o tutor não ver recomendações antigas.
    */
   enviar: async (respostas) => {
     const { data } = await http.post('/auth/complete-profile', respostas);
+    await limparCache();
     return data;
   },
 
-  /** Parecer já gerado. 404 quando o tutor ainda não respondeu. */
+  /** Parecer já gerado. Cache: 10 min. */
   relatorio: async () => {
-    const { data } = await http.get('/auth/relatorio');
-    return data;
+    const { dados } = await getComCache('/auth/relatorio', { ttlSegundos: 10 * 60 });
+    return dados;
   },
 
-  /** true/false sem estourar erro — usado para decidir se mostra o convite na Home. */
+  /** true/false sem estourar erro — decide se a Home mostra o convite. */
   jaRespondeu: async () => {
     try {
       await questionarioService.relatorio();
