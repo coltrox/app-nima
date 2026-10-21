@@ -7,13 +7,17 @@
 // Responsabilidades:
 //  1. baseURL vinda de src/config/api.js (fonte única — nunca hardcodar URL);
 //  2. anexar o Bearer token salvo em @nima_token a cada requisição;
-//  3. transformar erro do axios numa mensagem em português já pronta pra tela.
+//  3. transformar erro do axios numa mensagem em português já pronta pra tela;
+//  4. encerrar a sessão quando o token do Supabase expirar.
+//
+// O app conversa SOMENTE com o Render — o antigo fallback que reenviava ao
+// Render quando o backend local não respondia saiu daqui junto com o local.
 //
 // O backend não tem um formato de erro único: uns controladores devolvem
 // { error }, outros { message }. `mensagemDoErro` cobre os dois.
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL, RENDER_URL } from '../config/api';
+import { API_URL } from '../config/api';
 import { irParaLogin } from './navegacao';
 import { demoAtivo, adaptadorDemo } from '../demo/modoDemo';
 
@@ -62,21 +66,9 @@ http.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Fallback automático: se o backend LOCAL (dev) não responder (erro de rede/
-// conexão recusada), a requisição é reenviada ao Render. Assim o app funciona em
-// qualquer máquina SEM precisar do backend/n8n locais rodando (ex.: outro PC).
-// Em produção API_URL já é o Render, então este caminho nem é acionado.
 http.interceptors.response.use(
   (resp) => resp,
   async (erro) => {
-    const cfg = erro?.config;
-    const semResposta = !erro?.response; // erro de rede, não uma resposta HTTP
-    const usandoLocal = API_URL !== RENDER_URL;
-    if (semResposta && usandoLocal && cfg && !cfg.__tentouRender) {
-      cfg.__tentouRender = true;
-      cfg.baseURL = RENDER_URL;
-      return http(cfg);
-    }
     if (sessaoExpirou(erro)) await encerrarSessao();
     return Promise.reject(erro);
   }

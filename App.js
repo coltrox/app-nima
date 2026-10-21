@@ -129,10 +129,6 @@ export default function App() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <StatusBar style="dark" />
-      {/* Faixa do modo demonstração: fora do Navigator, para aparecer em
-          qualquer tela sem que nenhuma delas saiba que a demo existe. */}
-      <SeloDemo />
       <Stack.Navigator
         initialRouteName={initialRoute}
         screenOptions={{
